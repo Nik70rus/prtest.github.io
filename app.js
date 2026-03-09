@@ -9,9 +9,6 @@
     let userInfo = {};
     const app = document.getElementById('app');
 
-    // ========== НАСТРОЙКИ TELEGRAM ==========
-    let telegramSettings = JSON.parse(localStorage.getItem('telegramSettings') || '{}');
-
     // ========== РАСЧЁТЫ ==========
     function calculateScores(answersDict) {
         const scores = { 
@@ -56,7 +53,7 @@
     }
 
     // ========== ИСТОРИЯ ==========
-    function saveResultToHistory(percentages, leading, rawScores, report, userData) {
+    function saveResultToHistory(percentages, leading, report, userData, resultType = 'test') {
         let history = JSON.parse(localStorage.getItem('psychoHistory') || '[]');
         
         history.unshift({ 
@@ -64,9 +61,9 @@
             date: new Date().toISOString(), 
             leading, 
             percentages, 
-            raw: rawScores,
             report: report,
-            user: userData
+            user: userData,
+            resultType: resultType // 'test' или 'manual'
         });
         
         if (history.length > 20) history = history.slice(0, 20);
@@ -106,6 +103,17 @@
         }
     }
 
+    async function copyAllContent(percentages, userData, date = new Date()) {
+        const text = profileGenerator.generateCopyAllText(percentages, userData, date);
+        
+        try {
+            await navigator.clipboard.writeText(text);
+            showCopyNotification('✅ Весь отчёт скопирован');
+        } catch {
+            alert('Не удалось скопировать, вот текст:\n\n' + text);
+        }
+    }
+
     function showCopyNotification(msg) {
         const notif = document.createElement('div');
         notif.className = 'copy-notification';
@@ -129,52 +137,14 @@
         showCopyNotification('📥 Файл сохранён');
     }
 
-    // ========== ОТПРАВКА В TELEGRAM ==========
-    function sendToTelegram(percentages, userData) {
-        const message = profileGenerator.generateTelegramMessage(percentages, userData);
-        
-        // Проверяем настройки
-        if (!telegramSettings.botToken || !telegramSettings.chatId) {
-            showTelegramSettingsModal();
-            return;
+    // ========== СОХРАНЕНИЕ В PDF ==========
+    async function downloadPDF(percentages, userData, date = new Date()) {
+        try {
+            await profileGenerator.generatePDF(percentages, userData, date);
+            showCopyNotification('📄 PDF сохранён');
+        } catch (err) {
+            alert('Ошибка создания PDF: ' + err.message);
         }
-
-        const url = `https://api.telegram.org/bot${telegramSettings.botToken}/sendMessage`;
-        
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                chat_id: telegramSettings.chatId,
-                text: message,
-                parse_mode: 'Markdown'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.ok) {
-                showCopyNotification('✅ Отправлено в Telegram');
-            } else {
-                alert('Ошибка отправки: ' + (data.description || 'Неизвестная ошибка'));
-            }
-        })
-        .catch(err => {
-            alert('Ошибка соединения: ' + err.message);
-        });
-    }
-
-    function saveTelegramSettings(botToken, chatId) {
-        telegramSettings = { botToken, chatId };
-        localStorage.setItem('telegramSettings', JSON.stringify(telegramSettings));
-        showCopyNotification('⚙️ Настройки сохранены');
-    }
-
-    function clearTelegramSettings() {
-        telegramSettings = {};
-        localStorage.removeItem('telegramSettings');
-        showCopyNotification('🗑 Настройки очищены');
     }
 
     // ========== ВАЛИДАЦИЯ ФОРМЫ ==========
@@ -237,6 +207,93 @@
         };
     }
 
+    // ========== ВАЛИДАЦИЯ РУЧНОГО ВВОДА ПРОЦЕНТОВ ==========
+    function validateManualPercentages() {
+        const percentages = {};
+        let isValid = true;
+        let errors = {};
+        
+        const radicalKeys = Object.keys(RADICAL_NAMES);
+        let sum = 0;
+        
+        radicalKeys.forEach(key => {
+            const input = document.getElementById(`percent_${key}`);
+            const value = parseInt(input.value) || 0;
+            
+            if (input.value === '' || isNaN(value)) {
+                errors[key] = VALIDATION_MESSAGES.percent_required;
+                isValid = false;
+            } else if (value < 0 || value > 100) {
+                errors[key] = VALIDATION_MESSAGES.percent_invalid_value;
+                isValid = false;
+            }
+            
+            percentages[key] = value;
+            sum += value;
+        });
+        
+        // Проверка суммы
+        if (sum !== 100) {
+            errors.sum = VALIDATION_MESSAGES.percent_sum_invalid.replace('{sum}', sum);
+            isValid = false;
+        }
+        
+        // Отображение ошибок
+        document.querySelectorAll('.percent-input-item input').forEach(el => el.classList.remove('error'));
+        document.getElementById('percentSumDisplay')?.classList.remove('valid', 'invalid');
+        
+        radicalKeys.forEach(key => {
+            if (errors[key]) {
+                document.getElementById(`percent_${key}`).classList.add('error');
+            }
+        });
+        
+        const sumDisplay = document.getElementById('percentSumDisplay');
+        if (sumDisplay) {
+            if (sum === 100 && isValid) {
+                sumDisplay.classList.add('valid');
+                sumDisplay.innerHTML = `✅ Сумма: <span>${sum}%</span> — корректно`;
+            } else {
+                sumDisplay.classList.add('invalid');
+                sumDisplay.innerHTML = `❌ Сумма: <span>${sum}%</span> — должна быть 100%`;
+            }
+        }
+        
+        return {
+            isValid,
+            errors,
+            percentages: isValid ? percentages : null,
+            sum: sum
+        };
+    }
+
+    // ========== ОБНОВЛЕНИЕ СУММЫ ПРОЦЕНТОВ ==========
+    function updatePercentSum() {
+        const radicalKeys = Object.keys(RADICAL_NAMES);
+        let sum = 0;
+        
+        radicalKeys.forEach(key => {
+            const input = document.getElementById(`percent_${key}`);
+            if (input) {
+                const value = parseInt(input.value) || 0;
+                sum += value;
+            }
+        });
+        
+        const sumDisplay = document.getElementById('percentSumDisplay');
+        if (sumDisplay) {
+            if (sum === 100) {
+                sumDisplay.classList.add('valid');
+                sumDisplay.classList.remove('invalid');
+                sumDisplay.innerHTML = `✅ Сумма: <span>${sum}%</span> — корректно`;
+            } else {
+                sumDisplay.classList.add('invalid');
+                sumDisplay.classList.remove('valid');
+                sumDisplay.innerHTML = `❌ Сумма: <span>${sum}%</span> — должна быть 100%`;
+            }
+        }
+    }
+
     // ========== РЕНДЕРИНГ ==========
     function render() {
         if (currentScreen === 'start') renderStart();
@@ -245,6 +302,7 @@
         else if (currentScreen === 'result') renderResult();
         else if (currentScreen === 'method') renderMethod();
         else if (currentScreen === 'history') renderHistory();
+        else if (currentScreen === 'manualInput') renderManualInput();
     }
 
     function renderStart() {
@@ -265,9 +323,9 @@
                     </div>
                     <button class="start-btn" id="startTestBtn">▶ ПРОЙТИ ТЕСТ</button>
                     <div class="flex-row">
+                        <button class="nav-btn manual-btn" id="manualInputBtn">📝 Ручной ввод %</button>
                         <button class="nav-btn" id="historyBtn">📋 История</button>
                         <button class="nav-btn" id="aboutBtn">📚 О методе</button>
-                        <button class="nav-btn" id="telegramSettingsBtn">⚙️ Telegram</button>
                     </div>
                 </div>
                 <footer>тест 35 · данные локально · персонализированные отчёты · 16+</footer>
@@ -279,6 +337,10 @@
             render();
         });
         
+        document.getElementById('manualInputBtn').addEventListener('click', () => { 
+            currentScreen = 'manualInput'; 
+            render(); 
+        });
         document.getElementById('historyBtn').addEventListener('click', () => { 
             currentScreen = 'history'; 
             render(); 
@@ -287,7 +349,6 @@
             currentScreen = 'method'; 
             render(); 
         });
-        document.getElementById('telegramSettingsBtn').addEventListener('click', showTelegramSettingsModal);
     }
 
     function renderUserForm() {
@@ -346,6 +407,75 @@
                 currentQuestionIndex = 0; 
                 answers = {}; 
                 render();
+            }
+        });
+    }
+
+    function renderManualInput() {
+        const radicalKeys = Object.keys(RADICAL_NAMES);
+        
+        let inputsHtml = '';
+        radicalKeys.forEach(key => {
+            const [name, emoji] = RADICAL_NAMES[key];
+            inputsHtml += `
+                <div class="percent-input-item">
+                    <label>${emoji} ${name}</label>
+                    <input type="number" id="percent_${key}" min="0" max="100" value="0" oninput="updatePercentSum()">
+                </div>
+            `;
+        });
+        
+        app.innerHTML = `
+            <div class="results-screen">
+                <div class="manual-input-container">
+                    <h2>📝 Ручной ввод процентов радикалов</h2>
+                    <p style="color:#64748b; margin:10px 0 20px;">Введите процентное соотношение по каждому радикалу. Сумма должна быть равна 100%.</p>
+                    
+                    <div class="percent-inputs-grid">
+                        ${inputsHtml}
+                    </div>
+                    
+                    <div class="percent-sum-display" id="percentSumDisplay">
+                        ❌ Сумма: <span>0%</span> — должна быть 100%
+                    </div>
+                    
+                    <div class="nav-buttons">
+                        <button class="nav-btn" id="backToStartManual">🏠 На главную</button>
+                        <button class="nav-btn action-btn" id="submitManualBtn">▶ Получить отчёт</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('backToStartManual')?.addEventListener('click', () => { 
+            currentScreen = 'start'; 
+            render(); 
+        });
+        
+        document.getElementById('submitManualBtn')?.addEventListener('click', () => {
+            const validation = validateManualPercentages();
+            
+            if (validation.isValid) {
+                // Генерация отчёта
+                const { report, analysis } = profileGenerator.generateFullReport(validation.percentages);
+                
+                lastResult = { 
+                    percentages: validation.percentages, 
+                    leading: analysis.leading, 
+                    profileReport: report,
+                    user: userInfo,
+                    resultType: 'manual'
+                };
+                
+                saveResultToHistory(validation.percentages, analysis.leading, report, userInfo, 'manual');
+                currentScreen = 'result';
+                render();
+            } else {
+                if (validation.errors.sum) {
+                    alert(validation.errors.sum);
+                } else {
+                    alert('Проверьте корректность введённых значений');
+                }
             }
         });
     }
@@ -429,10 +559,11 @@
             leading, 
             raw,
             profileReport: report,
-            user: userInfo
+            user: userInfo,
+            resultType: 'test'
         };
         
-        saveResultToHistory(percentages, leading, raw, report, userInfo);
+        saveResultToHistory(percentages, leading, report, userInfo, 'test');
         currentScreen = 'result';
         render();
     }
@@ -444,7 +575,7 @@
             return; 
         }
         
-        const { percentages, leading, profileReport, user } = lastResult;
+        const { percentages, leading, profileReport, user, resultType } = lastResult;
         const [leadName, leadEmoji, leadSub] = RADICAL_NAMES[leading] || [leading, '', ''];
         const desc = RADICAL_DESCRIPTIONS[leading] || '';
         const strengths = STRENGTHS[leading] || [];
@@ -478,6 +609,12 @@
             `;
         }
         
+        // Тип результата
+        let resultTypeBadge = '';
+        if (resultType === 'manual') {
+            resultTypeBadge = `<div class="result-type-badge">📝 Ручной ввод процентов</div>`;
+        }
+        
         let history = loadHistory();
         let historyBlock = history.length > 1 ? 
             `<div class="history-area">📊 предыдущие: ${history.slice(0, 2).map(h => 
@@ -487,13 +624,16 @@
         // Генерация HTML отчёта
         const htmlReport = profileGenerator.generateHTMLReport(percentages);
         
+        const resultDate = new Date();
+        
         app.innerHTML = `
             <div class="results-screen">
                 <div class="results-card">
                     <h2>🧠 ВАШ ПСИХОРАДИКАЛЬНЫЙ ПРОФИЛЬ
-                        <button class="copy-btn" id="copyPercentagesBtn">📋 скопировать</button>
+                        <button class="copy-btn" id="copyPercentagesBtn">📋 скопировать %</button>
                     </h2>
                     
+                    ${resultTypeBadge}
                     ${userInfoBlock}
                     
                     <div style="font-size:1.2rem; margin-bottom:10px;">📊 Процентное соотношение:</div>
@@ -511,12 +651,14 @@
                     
                     <div class="flex-row" style="margin:20px 0;">
                         <button class="nav-btn action-btn" id="downloadTxtBtn">📥 Сохранить TXT</button>
-                        <button class="nav-btn telegram-btn" id="sendTelegramBtn">✈️ В Telegram</button>
+                        <button class="nav-btn pdf-btn" id="downloadPdfBtn">📄 Сохранить PDF</button>
+                        <button class="nav-btn copy-all-btn" id="copyAllBtn">📋 Копировать всё</button>
                     </div>
                     
                     ${historyBlock}
                     <div class="nav-buttons">
                         <button class="nav-btn" id="againBtn">🔄 Ещё раз</button>
+                        <button class="nav-btn manual-btn" id="manualFromResult">📝 Ручной ввод %</button>
                         <button class="nav-btn" id="historyFromResult">📋 История</button>
                         <button class="nav-btn" id="methodFromResult">📚 О методе</button>
                         <button class="nav-btn" id="mainMenuBtn">🏠 На главную</button>
@@ -526,11 +668,16 @@
         `;
         
         document.getElementById('copyPercentagesBtn').addEventListener('click', () => copyPercentages(percentages));
-        document.getElementById('downloadTxtBtn').addEventListener('click', () => downloadTXT(percentages, user));
-        document.getElementById('sendTelegramBtn').addEventListener('click', () => sendToTelegram(percentages, user));
+        document.getElementById('downloadTxtBtn').addEventListener('click', () => downloadTXT(percentages, user, resultDate));
+        document.getElementById('downloadPdfBtn').addEventListener('click', () => downloadPDF(percentages, user, resultDate));
+        document.getElementById('copyAllBtn').addEventListener('click', () => copyAllContent(percentages, user, resultDate));
         document.getElementById('againBtn')?.addEventListener('click', () => { 
             currentScreen = 'userForm'; 
             userInfo = {};
+            render(); 
+        });
+        document.getElementById('manualFromResult')?.addEventListener('click', () => { 
+            currentScreen = 'manualInput'; 
             render(); 
         });
         document.getElementById('historyFromResult')?.addEventListener('click', () => { 
@@ -708,6 +855,10 @@
                 const sorted = Object.entries(item.percentages).sort((a, b) => b[1] - a[1]);
                 const top3 = sorted.slice(0, 3).map(([c, v]) => `${RADICAL_NAMES[c]?.[1]} ${v}%`).join(' · ');
                 
+                // Тип результата
+                const typeBadge = item.resultType === 'manual' ? 
+                    '<span class="history-item-type">📝 Ручной</span>' : '';
+                
                 // Информация о пользователе
                 let userText = '';
                 if (item.user) {
@@ -721,12 +872,14 @@
                             <span class="history-item-date">${index + 1}. ${date}</span>
                             <span class="history-item-leading">${leadEmoji} ${leadName}</span>
                         </div>
+                        ${typeBadge}
                         ${userText}
                         <div style="font-size:0.9rem; color:#666; margin-bottom:8px;">${top3}</div>
                         <div class="history-item-actions">
                             <button class="history-action-btn" data-action="view" data-id="${item.id}">👁 Просмотр</button>
-                            <button class="history-action-btn" data-action="download" data-id="${item.id}">📥 TXT</button>
-                            <button class="history-action-btn" data-action="telegram" data-id="${item.id}">✈️ TG</button>
+                            <button class="history-action-btn" data-action="download-txt" data-id="${item.id}">📥 TXT</button>
+                            <button class="history-action-btn" data-action="download-pdf" data-id="${item.id}">📄 PDF</button>
+                            <button class="history-action-btn" data-action="copy-all" data-id="${item.id}">📋 Копия</button>
                             <button class="history-action-btn" data-action="delete" data-id="${item.id}">🗑</button>
                         </div>
                     </div>
@@ -773,21 +926,20 @@
         const item = getHistoryItem(id);
         if (!item) return;
         
+        const date = new Date(item.date);
+        
         switch (action) {
             case 'view':
                 showHistoryItemModal(item);
                 break;
-            case 'download':
-                downloadTXT(item.percentages, item.user, new Date(item.date));
+            case 'download-txt':
+                downloadTXT(item.percentages, item.user, date);
                 break;
-            case 'telegram':
-                lastResult = {
-                    percentages: item.percentages,
-                    leading: item.leading,
-                    profileReport: item.report,
-                    user: item.user
-                };
-                sendToTelegram(item.percentages, item.user);
+            case 'download-pdf':
+                downloadPDF(item.percentages, item.user, date);
+                break;
+            case 'copy-all':
+                copyAllContent(item.percentages, item.user, date);
                 break;
             case 'delete':
                 if (confirm('Удалить этот результат?')) {
@@ -810,6 +962,10 @@
         const [leadName, leadEmoji] = RADICAL_NAMES[item.leading] || [item.leading, ''];
         const date = new Date(item.date).toLocaleString('ru-RU');
         
+        // Тип результата
+        const typeBadge = item.resultType === 'manual' ? 
+            '<div class="result-type-badge">📝 Ручной ввод процентов</div>' : '';
+        
         // Информация о пользователе
         let userInfoBlock = '';
         if (item.user) {
@@ -824,6 +980,7 @@
         }
         
         let html = `<h2 style="margin-bottom:16px;">📊 Результат от ${date}</h2>`;
+        html += typeBadge;
         html += userInfoBlock;
         html += `<div class="leading-block" style="margin:16px 0;">`;
         html += `<div class="leading-title">${leadEmoji} ${leadName} — ${item.percentages[item.leading]}%</div>`;
@@ -845,9 +1002,11 @@
         html += profileGenerator.generateHTMLReport(item.percentages);
         
         // Кнопки
+        const resultDate = new Date(item.date);
         html += `<div class="flex-row" style="margin:20px 0;">
-            <button class="nav-btn action-btn" id="modalDownloadBtn">📥 Сохранить TXT</button>
-            <button class="nav-btn telegram-btn" id="modalTelegramBtn">✈️ В Telegram</button>
+            <button class="nav-btn action-btn" id="modalDownloadTxtBtn">📥 Сохранить TXT</button>
+            <button class="nav-btn pdf-btn" id="modalDownloadPdfBtn">📄 Сохранить PDF</button>
+            <button class="nav-btn copy-all-btn" id="modalCopyAllBtn">📋 Копировать всё</button>
         </div>`;
         
         html += `<button class="modal-close">Закрыть</button>`;
@@ -858,63 +1017,14 @@
         
         // Обработчики
         content.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
-        content.querySelector('#modalDownloadBtn').addEventListener('click', () => {
-            downloadTXT(item.percentages, item.user, new Date(item.date));
+        content.querySelector('#modalDownloadTxtBtn').addEventListener('click', () => {
+            downloadTXT(item.percentages, item.user, resultDate);
         });
-        content.querySelector('#modalTelegramBtn').addEventListener('click', () => {
-            lastResult = { percentages: item.percentages, leading: item.leading, user: item.user };
-            sendToTelegram(item.percentages, item.user);
+        content.querySelector('#modalDownloadPdfBtn').addEventListener('click', () => {
+            downloadPDF(item.percentages, item.user, resultDate);
         });
-        
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.remove();
-        });
-    }
-
-    function showTelegramSettingsModal() {
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        
-        const content = document.createElement('div');
-        content.className = 'modal-content';
-        
-        content.innerHTML = `
-            <h2 style="margin-bottom:16px;">⚙️ Настройки Telegram</h2>
-            <div class="telegram-settings">
-                <label>Token бота:</label>
-                <input type="text" id="botTokenInput" placeholder="123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw" value="${telegramSettings.botToken || ''}">
-                
-                <label>Chat ID:</label>
-                <input type="text" id="chatIdInput" placeholder="123456789" value="${telegramSettings.chatId || ''}">
-                
-                <p style="font-size:0.9rem; color:#666; margin-top:12px;">
-                    📝 Создайте бота через @BotFather, узнайте Chat ID через @userinfobot
-                </p>
-            </div>
-            <div class="flex-row" style="margin:16px 0;">
-                <button class="nav-btn action-btn" id="saveTelegramBtn">💾 Сохранить</button>
-                <button class="nav-btn reset-btn" id="clearTelegramBtn">🗑 Очистить</button>
-            </div>
-            <button class="modal-close">Закрыть</button>
-        `;
-        
-        overlay.appendChild(content);
-        document.body.appendChild(overlay);
-        
-        content.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
-        content.querySelector('#saveTelegramBtn').addEventListener('click', () => {
-            const botToken = document.getElementById('botTokenInput').value.trim();
-            const chatId = document.getElementById('chatIdInput').value.trim();
-            if (botToken && chatId) {
-                saveTelegramSettings(botToken, chatId);
-                overlay.remove();
-            } else {
-                alert('Заполните оба поля');
-            }
-        });
-        content.querySelector('#clearTelegramBtn').addEventListener('click', () => {
-            clearTelegramSettings();
-            overlay.remove();
+        content.querySelector('#modalCopyAllBtn').addEventListener('click', () => {
+            copyAllContent(item.percentages, item.user, resultDate);
         });
         
         overlay.addEventListener('click', (e) => {

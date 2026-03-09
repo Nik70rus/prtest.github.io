@@ -517,46 +517,97 @@ class ProfileGenerator {
         return txt;
     }
 
-    // ===== ГЕНЕРАЦИЯ СООБЩЕНИЯ ДЛЯ TELEGRAM =====
-    generateTelegramMessage(percentages, userInfo) {
+    // ===== ГЕНЕРАЦИЯ СООБЩЕНИЯ ДЛЯ КОПИРОВАНИЯ =====
+    generateCopyAllText(percentages, userInfo, date = new Date()) {
         const { report, analysis } = this.generateFullReport(percentages);
         
-        let msg = `🧠 *Психорадикальный профиль*\n\n`;
+        let text = `🧠 ПСИХОРАДИКАЛЬНЫЙ ПРОФИЛЬ · ТЕСТ ПОНОМАРЕНКО\n`;
+        text += `📅 Дата: ${date.toLocaleString('ru-RU')}\n\n`;
         
         // Информация о пользователе
         if (userInfo) {
-            msg += `👤 *Пользователь:*\n`;
-            msg += `${userInfo.firstName}`;
-            if (userInfo.lastName) msg += ` ${userInfo.lastName}`;
-            if (userInfo.patronymic) msg += ` ${userInfo.patronymic}`;
-            msg += `\n🎂 Возраст: ${userInfo.age} лет\n\n`;
+            const fullName = [userInfo.lastName, userInfo.firstName, userInfo.patronymic].filter(Boolean).join(' ');
+            text += `👤 ${fullName || userInfo.firstName}\n`;
+            text += `🎂 Возраст: ${userInfo.age} лет\n\n`;
         }
         
+        // Проценты
+        text += `📊 ПРОЦЕНТНОЕ СООТНОШЕНИЕ:\n`;
         const sorted = Object.entries(percentages).sort((a, b) => b[1] - a[1]);
-        msg += `📊 *Процентное соотношение:*\n`;
-        for (let [code, val] of sorted.slice(0, 4)) {
+        for (let [code, val] of sorted) {
             const [name, emoji] = RADICAL_NAMES[code] || [code, '•'];
-            msg += `${emoji} ${name}: *${val}%*\n`;
+            text += `${emoji} ${name}: ${val}%\n`;
         }
         
         const [leadName, leadEmoji] = RADICAL_NAMES[analysis.leading] || [analysis.leading, ''];
-        msg += `\n🏆 *Ведущий:* ${leadEmoji} ${leadName} (${analysis.leadingPercent}%)\n`;
-        msg += `\n📝 ${RADICAL_DESCRIPTIONS[analysis.leading]}\n`;
+        text += `\n🏆 ВЕДУЩИЙ: ${leadEmoji} ${leadName} (${analysis.leadingPercent}%)\n`;
+        text += `📝 ${RADICAL_DESCRIPTIONS[analysis.leading]}\n`;
         
-        // Краткие сильные стороны (топ-2)
-        msg += `\n💪 *Сильные стороны:*\n`;
-        const topStrengths = STRENGTHS[analysis.leading]?.slice(0, 2) || [];
-        topStrengths.forEach((s, i) => {
-            msg += `${i + 1}. ${s}\n`;
-        });
+        text += `\n─────────────────────────────\n`;
+        text += `ПОЛНЫЙ ОТЧЁТ:\n`;
+        text += `─────────────────────────────\n\n`;
+        text += report;
         
-        // Краткие рекомендации
-        msg += `\n💡 *Ключевая рекомендация:*\n`;
-        msg += report.split('🎯 Главный вывод:')[1]?.substring(0, 300) + '...' || 'Работайте над балансом радикалов.';
+        return text;
+    }
+
+    // ===== ГЕНЕРАЦИЯ PDF =====
+    async generatePDF(percentages, userInfo, date = new Date()) {
+        const { report, analysis } = this.generateFullReport(percentages);
         
-        msg += `\n\n_Полный отчёт доступен в приложении_`;
+        // Создаём временный элемент для PDF
+        const content = document.createElement('div');
+        content.style.padding = '20px';
+        content.style.fontFamily = 'Arial, sans-serif';
+        content.style.fontSize = '14px';
+        content.style.lineHeight = '1.6';
         
-        return msg;
+        const fullName = userInfo ? 
+            [userInfo.lastName, userInfo.firstName, userInfo.patronymic].filter(Boolean).join(' ') : 
+            'Пользователь';
+        
+        content.innerHTML = `
+            <h1 style="color: #1A2A4F; text-align: center; margin-bottom: 10px;">Психорадикальный Профиль</h1>
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">Тест В.В. Пономаренко</p>
+            
+            <div style="background: #f0f7ff; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <p><strong>👤 Пользователь:</strong> ${fullName}</p>
+                <p><strong>📅 Дата:</strong> ${date.toLocaleString('ru-RU')}</p>
+                ${userInfo ? `<p><strong>🎂 Возраст:</strong> ${userInfo.age} лет</p>` : ''}
+            </div>
+            
+            <h2 style="color: #1A2A4F; border-bottom: 2px solid #3a6ea5; padding-bottom: 10px;">📊 Процентное соотношение</h2>
+            ${sorted.map(([code, val]) => {
+                const [name, emoji] = RADICAL_NAMES[code] || [code, '•'];
+                return `<p>${emoji} ${name}: <strong>${val}%</strong></p>`;
+            }).join('')}
+            
+            <div style="background: #e0eaf8; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                <h3 style="color: #1A2A4F; margin-bottom: 10px;">🏆 Ведущий радикал: ${leadEmoji} ${leadName}</h3>
+                <p>${RADICAL_DESCRIPTIONS[analysis.leading]}</p>
+            </div>
+            
+            <h2 style="color: #1A2A4F; border-bottom: 2px solid #3a6ea5; padding-bottom: 10px; margin-top: 30px;">📋 Полный отчёт</h2>
+            <div style="white-space: pre-wrap;">${report}</div>
+            
+            <p style="text-align: center; color: #999; margin-top: 40px; font-size: 12px;">
+                Сгенерировано автоматически · Тест 7 психорадикалов В.В. Пономаренко
+            </p>
+        `;
+        
+        document.body.appendChild(content);
+        
+        const opt = {
+            margin: 10,
+            filename: `психорадикалы_${date.toISOString().slice(0,10)}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        await html2pdf().set(opt).from(content).save();
+        
+        document.body.removeChild(content);
     }
 
     // ===== РАСЧЁТ ВОЗРАСТА =====
@@ -580,6 +631,21 @@ class ProfileGenerator {
             isValid: age >= 16,
             age: age,
             message: age < 16 ? VALIDATION_MESSAGES.age_warning_text : ''
+        };
+    }
+
+    // ===== ПРОВЕРКА СУММЫ ПРОЦЕНТОВ =====
+    validatePercentages(percentages) {
+        const values = Object.values(percentages);
+        const sum = values.reduce((a, b) => a + b, 0);
+        
+        // Проверка на отрицательные значения и значения > 100
+        const invalidValues = values.some(v => v < 0 || v > 100);
+        
+        return {
+            isValid: sum === 100 && !invalidValues,
+            sum: sum,
+            invalidValues: invalidValues
         };
     }
 }

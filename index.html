@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Психорадикалы · тест Пономаренко</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* ========== БАЗОВЫЕ СБРОСЫ И ПЕРЕМЕННЫЕ ========== */
         * {
@@ -22,7 +23,7 @@
         }
         .test-container {
             width: 100%;
-            max-width: 700px;
+            max-width: 750px;
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -165,6 +166,21 @@
         .action-btn:active {
             background: #1f3e60;
         }
+        .pdf-btn {
+            background: #fef3e2;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .copy-all-btn {
+            background: #e0e7ff;
+            border-color: #a5b4fc;
+            color: #3730a3;
+        }
+        .manual-btn {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #166534;
+        }
         
         /* ========== СТАРТ ========== */
         .start-screen, .results-screen, .method-screen {
@@ -258,11 +274,6 @@
         .form-error.show {
             display: block;
         }
-        .form-hint {
-            color: #64748b;
-            font-size: 0.85rem;
-            margin-top: 6px;
-        }
         .age-warning {
             background: #fef2f2;
             border: 2px solid #fecaca;
@@ -285,6 +296,74 @@
         .age-warning p {
             font-size: 0.95rem;
             line-height: 1.5;
+        }
+        
+        /* ========== ФОРМА РУЧНОГО ВВОДА ========== */
+        .manual-input-container {
+            background: #ffffffde;
+            border-radius: 40px;
+            padding: 22px 16px;
+            margin-top: 10px;
+            text-align: left;
+        }
+        .percent-inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .percent-input-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .percent-input-item label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1f3a5f;
+            margin-bottom: 6px;
+        }
+        .percent-input-item input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #d4e0f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        .percent-input-item input:focus {
+            outline: none;
+            border-color: #3a6ea5;
+            background: white;
+        }
+        .percent-input-item input.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .percent-sum-display {
+            background: #f0f7ff;
+            border-radius: 20px;
+            padding: 14px 18px;
+            margin: 16px 0;
+            text-align: center;
+            border: 2px solid #bfdbfe;
+        }
+        .percent-sum-display.valid {
+            background: #f0fdf4;
+            border-color: #86efac;
+            color: #166534;
+        }
+        .percent-sum-display.invalid {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+        .percent-sum-display span {
+            font-size: 1.3rem;
+            font-weight: 700;
         }
         
         /* ========== РЕЗУЛЬТАТЫ ========== */
@@ -318,7 +397,18 @@
             color: #1e40af;
             margin: 4px 0;
         }
-        .copy-btn, .download-btn, .telegram-btn {
+        .result-type-badge {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #92400e;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        .copy-btn, .download-btn, .copy-all-btn {
             background: #edf3fc;
             border: 2px solid #b3c7e3;
             border-radius: 40px;
@@ -333,18 +423,18 @@
             white-space: nowrap;
             -webkit-tap-highlight-color: transparent;
         }
-        .copy-btn:active, .download-btn:active, .telegram-btn:active {
+        .copy-btn:active, .download-btn:active, .copy-all-btn:active {
             background: #d0dff5;
-        }
-        .telegram-btn {
-            background: #e3f2fd;
-            border-color: #90caf9;
-            color: #1976d2;
         }
         .download-btn {
             background: #f3e5f5;
             border-color: #ce93d8;
             color: #7b1fa2;
+        }
+        .pdf-btn {
+            background: #fef3e2;
+            border-color: #fcd34d;
+            color: #92400e;
         }
         .copy-notification {
             background: #1f3a5f;
@@ -526,6 +616,14 @@
             font-size: 0.9rem;
             font-weight: 600;
         }
+        .history-item-type {
+            background: #fef3c7;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #92400e;
+        }
         .history-item-user {
             font-size: 0.9rem;
             color: #64748b;
@@ -569,7 +667,7 @@
             background: white;
             border-radius: 40px;
             padding: 24px;
-            max-width: 600px;
+            max-width: 650px;
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
@@ -583,29 +681,6 @@
             font-weight: 600;
             cursor: pointer;
             margin-top: 16px;
-        }
-        
-        /* ========== TELEGRAM НАСТРОЙКИ ========== */
-        .telegram-settings {
-            background: #e3f2fd;
-            border-radius: 28px;
-            padding: 16px;
-            margin: 16px 0;
-            border: 1px solid #90caf9;
-        }
-        .telegram-settings input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #bbdefb;
-            border-radius: 20px;
-            font-size: 1rem;
-            margin: 8px 0;
-        }
-        .telegram-settings label {
-            font-weight: 600;
-            color: #1976d2;
-            display: block;
-            margin-bottom: 4px;
         }
         
         /* ========== FOOTER ========== */
@@ -651,6 +726,9 @@
             }
             .form-group input {
                 padding: 12px 14px;
+            }
+            .percent-inputs-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>

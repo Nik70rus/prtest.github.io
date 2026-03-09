@@ -308,18 +308,18 @@
     function renderStart() {
         app.innerHTML = `
             <div class="start-screen">
-                <h1><span>🧠</span> Тест на выявление психорадикалов</h1>
-                <div class="sub">По авторской методике В.В. Пономаренко</div>
+                <h1><span>🧠</span>Тест на выявление психорадикалов</h1>
+                <div class="sub">В.В. Пономаренко · 35 вопросов</div>
                 <div style="background:#ffffffb0; border-radius:40px; padding:20px 14px;">
                     <p style="font-size:1.2rem; margin-bottom:20px;">7 типов личности:</p>
                     <div class="welcome-grid">
-                        <div class="radical-badge" style="border-left-color:#d4af37;">🎭 Истероидный</div>
-                        <div class="radical-badge" style="border-left-color:#b87333;">📊 Эпилептоидный</div>
-                        <div class="radical-badge" style="border-left-color:#4b6b9c;">🎯 Паранойяльный</div>
-                        <div class="radical-badge" style="border-left-color:#c0546b;">💖 Эмотивный</div>
-                        <div class="radical-badge" style="border-left-color:#6d8f7a;">🛡 Тревожный</div>
-                        <div class="radical-badge" style="border-left-color:#e68a56;">⚡ Гипертимный</div>
-                        <div class="radical-badge" style="border-left-color:#7d6b91;">🧠 Шизоидный</div>
+                        <div class="radical-badge" style="border-left-color:#d4af37;" data-radical="hysteroid">🎭 Истероидный</div>
+                        <div class="radical-badge" style="border-left-color:#b87333;" data-radical="epileptoid">📊 Эпилептоидный</div>
+                        <div class="radical-badge" style="border-left-color:#4b6b9c;" data-radical="paranoid">🎯 Паранойяльный</div>
+                        <div class="radical-badge" style="border-left-color:#c0546b;" data-radical="emotive">💖 Эмотивный</div>
+                        <div class="radical-badge" style="border-left-color:#6d8f7a;" data-radical="anxious">🛡 Тревожный</div>
+                        <div class="radical-badge" style="border-left-color:#e68a56;" data-radical="hypertymic">⚡ Гипертимный</div>
+                        <div class="radical-badge" style="border-left-color:#7d6b91;" data-radical="schizoid">🧠 Шизоидный</div>
                     </div>
                     <button class="start-btn" id="startTestBtn">▶ ПРОЙТИ ТЕСТ</button>
                     <div class="flex-row">
@@ -331,6 +331,29 @@
                 <footer>тест 35 · данные локально · персонализированные отчёты · 16+</footer>
             </div>
         `;
+        
+        // Обработчики кликов на радикалы
+        document.querySelectorAll('.radical-badge').forEach(badge => {
+            badge.addEventListener('click', () => {
+                const radical = badge.dataset.radical;
+                currentScreen = 'method';
+                render();
+                // Прокрутка к нужному радикалу после рендера
+                setTimeout(() => {
+                    const element = document.getElementById(`radical-${radical}`);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Подсветка элемента
+                        element.style.background = '#fef3c7';
+                        element.style.borderColor = '#f59e0b';
+                        setTimeout(() => {
+                            element.style.background = '#f7faff';
+                            element.style.borderColor = '#cbd6e8';
+                        }, 2000);
+                    }
+                }, 100);
+            });
+        });
         
         document.getElementById('startTestBtn').addEventListener('click', () => {
             currentScreen = 'userForm'; 
@@ -704,7 +727,7 @@
                     <div style="background:#f8fafc; border-radius:28px; padding:20px; margin-bottom:20px; border:1px solid #e2e8f0;">
                         <h3 style="font-size:1.3rem; margin-bottom:12px; color:#1a2a4f;">🔍 Что это за методика?</h3>
                         <p style="font-size:1.05rem; line-height:1.6; color:#2d3748;">
-                            Методика «7 психорадикалов» разработана <b>Виктором Викторовичем Пономаренко</b> — доктором психологических наук, профессором, специалистом в области экстремальной и прикладной психологии.
+                            Методика «7 психорадикалов» разработана <b>Владимиром Владимировичем Пономаренко</b> — доктором психологических наук, профессором, специалистом в области экстремальной и прикладной психологии.
                         </p>
                         <p style="font-size:1.05rem; line-height:1.6; color:#2d3748; margin-top:10px;">
                             В основе лежит концепция <b>акцентуаций характера</b> — устойчивых особенностей личности, которые проявляются в типичных способах мышления, эмоционального реагирования и поведения. В отличие от клинических диагнозов, акцентуации есть у каждого человека и являются вариантом нормы.
@@ -853,7 +876,6 @@
                 const date = new Date(item.date).toLocaleString('ru-RU');
                 const [leadName, leadEmoji] = RADICAL_NAMES[item.leading] || [item.leading, ''];
                 const sorted = Object.entries(item.percentages).sort((a, b) => b[1] - a[1]);
-                const top3 = sorted.slice(0, 3).map(([c, v]) => `${RADICAL_NAMES[c]?.[1]} ${v}%`).join(' · ');
                 
                 // Тип результата
                 const typeBadge = item.resultType === 'manual' ? 
@@ -866,6 +888,14 @@
                     userText = `<div class="history-item-user">👤 ${fullName || item.user.firstName} · ${item.user.age} лет</div>`;
                 }
                 
+                // Все 7 радикалов с tooltip
+                let radicalsHtml = '<div class="history-radicals-list">';
+                sorted.forEach(([code, val]) => {
+                    const [name, emoji] = RADICAL_NAMES[code];
+                    radicalsHtml += `<span class="history-radical-tag" title="${name}">${emoji} ${val}%</span>`;
+                });
+                radicalsHtml += '</div>';
+                
                 return `
                     <div class="history-item">
                         <div class="history-item-header">
@@ -874,7 +904,7 @@
                         </div>
                         ${typeBadge}
                         ${userText}
-                        <div style="font-size:0.9rem; color:#666; margin-bottom:8px;">${top3}</div>
+                        ${radicalsHtml}
                         <div class="history-item-actions">
                             <button class="history-action-btn" data-action="view" data-id="${item.id}">👁 Просмотр</button>
                             <button class="history-action-btn" data-action="download-txt" data-id="${item.id}">📥 TXT</button>
@@ -986,7 +1016,7 @@
         html += `<div class="leading-title">${leadEmoji} ${leadName} — ${item.percentages[item.leading]}%</div>`;
         html += `</div>`;
         
-        // Проценты
+        // Проценты - все 7 радикалов
         html += `<div style="font-size:1.1rem; font-weight:600; margin:16px 0;">📊 Процентное соотношение:</div>`;
         const sorted = Object.entries(item.percentages).sort((a, b) => b[1] - a[1]);
         sorted.forEach(([code, val]) => {

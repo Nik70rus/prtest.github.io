@@ -203,6 +203,12 @@
             font-size: 0.95rem;
             text-align: left;
             word-break: break-word;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .radical-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
         }
         .start-btn {
             background: linear-gradient(145deg, #23415c, #1a3148);
@@ -568,6 +574,7 @@
             padding: 16px 18px;
             margin: 16px 0;
             border: 1px solid #cbd6e8;
+            scroll-margin-top: 20px;
         }
         .radical-method-block h4 {
             font-size: 1.4rem;
@@ -628,6 +635,26 @@
             font-size: 0.9rem;
             color: #64748b;
             margin-bottom: 8px;
+        }
+        .history-radicals-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0;
+        }
+        .history-radical-tag {
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            cursor: help;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s;
+        }
+        .history-radical-tag:hover {
+            background: #e0e7ff;
+            border-color: #6366f1;
+            transform: translateY(-1px);
         }
         .history-item-actions {
             display: flex;
@@ -729,6 +756,9 @@
             }
             .percent-inputs-grid {
                 grid-template-columns: 1fr;
+            }
+            .history-radicals-list {
+                justify-content: center;
             }
         }
     </style>

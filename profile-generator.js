@@ -414,7 +414,7 @@ class ProfileGenerator {
         const { report, analysis } = this.generateFullReport(percentages);
         
         // Разбиваем на секции для HTML
-        const sections = report.split(/\n\n(?=[📌|⚠️|💼|❤️|💬|🎯])/);
+        const sections = report.split(/\n\n(?=[📌|️|💼|❤️|💬|🎯])/);
         
         let html = `<div class="profile-report">`;
         
@@ -551,9 +551,11 @@ class ProfileGenerator {
         return text;
     }
 
-    // ===== ГЕНЕРАЦИЯ PDF =====
+    // ===== ГЕНЕРАЦИЯ PDF (ИСПРАВЛЕНО!) =====
     async generatePDF(percentages, userInfo, date = new Date()) {
         const { report, analysis } = this.generateFullReport(percentages);
+        const sorted = Object.entries(percentages).sort((a, b) => b[1] - a[1]);
+        const [leadName, leadEmoji] = RADICAL_NAMES[analysis.leading] || [analysis.leading, ''];
         
         // Создаём временный элемент для PDF
         const content = document.createElement('div');
@@ -566,6 +568,12 @@ class ProfileGenerator {
             [userInfo.lastName, userInfo.firstName, userInfo.patronymic].filter(Boolean).join(' ') : 
             'Пользователь';
         
+        let percentagesHtml = '';
+        for (let [code, val] of sorted) {
+            const [name, emoji] = RADICAL_NAMES[code] || [code, '•'];
+            percentagesHtml += `<p>${emoji} ${name}: <strong>${val}%</strong></p>`;
+        }
+        
         content.innerHTML = `
             <h1 style="color: #1A2A4F; text-align: center; margin-bottom: 10px;">Психорадикальный Профиль</h1>
             <p style="text-align: center; color: #666; margin-bottom: 20px;">Тест В.В. Пономаренко</p>
@@ -576,19 +584,16 @@ class ProfileGenerator {
                 ${userInfo ? `<p><strong>🎂 Возраст:</strong> ${userInfo.age} лет</p>` : ''}
             </div>
             
-            <h2 style="color: #1A2A4F; border-bottom: 2px solid #3a6ea5; padding-bottom: 10px;">📊 Процентное соотношение</h2>
-            ${sorted.map(([code, val]) => {
-                const [name, emoji] = RADICAL_NAMES[code] || [code, '•'];
-                return `<p>${emoji} ${name}: <strong>${val}%</strong></p>`;
-            }).join('')}
+            <h2 style="color: #1A2A4F; border-bottom: 2px solid #3a6ea5; padding-bottom: 10px; margin: 20px 0 15px;">📊 Процентное соотношение</h2>
+            ${percentagesHtml}
             
             <div style="background: #e0eaf8; padding: 15px; border-radius: 10px; margin: 20px 0;">
                 <h3 style="color: #1A2A4F; margin-bottom: 10px;">🏆 Ведущий радикал: ${leadEmoji} ${leadName}</h3>
                 <p>${RADICAL_DESCRIPTIONS[analysis.leading]}</p>
             </div>
             
-            <h2 style="color: #1A2A4F; border-bottom: 2px solid #3a6ea5; padding-bottom: 10px; margin-top: 30px;">📋 Полный отчёт</h2>
-            <div style="white-space: pre-wrap;">${report}</div>
+            <h2 style="color: #1A2A4F; border-bottom: 2px solid #3a6ea5; padding-bottom: 10px; margin: 30px 0 15px;">📋 Полный отчёт</h2>
+            <div style="white-space: pre-wrap; line-height: 1.6;">${report}</div>
             
             <p style="text-align: center; color: #999; margin-top: 40px; font-size: 12px;">
                 Сгенерировано автоматически · Тест 7 психорадикалов В.В. Пономаренко
@@ -601,13 +606,18 @@ class ProfileGenerator {
             margin: 10,
             filename: `психорадикалы_${date.toISOString().slice(0,10)}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
+            html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         
-        await html2pdf().set(opt).from(content).save();
-        
-        document.body.removeChild(content);
+        try {
+            await html2pdf().set(opt).from(content).save();
+        } catch (err) {
+            console.error('PDF generation error:', err);
+            throw err;
+        } finally {
+            document.body.removeChild(content);
+        }
     }
 
     // ===== РАСЧЁТ ВОЗРАСТА =====

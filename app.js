@@ -1,5 +1,9 @@
 // ========== ОСНОВНОЕ ПРИЛОЖЕНИЕ ==========
 
+// ========== НАСТРОЙКИ ДЛЯ СОХРАНЕНИЯ ДАННЫХ ==========
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwepVCOJwOAY82px2VkzCcHeRn6cgmmQUWjJyyO3ZIf5djEo4OOllzixyGL1OwGWPVc/exec';
+const ENABLE_REMOTE_SAVE = true; // Включить сохранение в Google Таблицу
+
 (function() {
     // ========== СОСТОЯНИЕ ==========
     let currentScreen = 'start';
@@ -50,6 +54,46 @@
 
     function getLeadingRadical(perc) {
         return Object.keys(perc).reduce((a, b) => perc[a] > perc[b] ? a : b);
+    }
+
+    // ========== ОТПРАВКА ДАННЫХ В GOOGLE ТАБЛИЦУ ==========
+    async function saveToGoogleSheet(userData, percentages, leading, resultType, profileType) {
+        if (!ENABLE_REMOTE_SAVE || !GOOGLE_SCRIPT_URL) {
+            console.log('Сохранение в Google Таблицу отключено');
+            return { success: false, reason: 'not_configured' };
+        }
+
+        const payload = {
+            firstName: userData?.firstName || '',
+            lastName: userData?.lastName || '',
+            patronymic: userData?.patronymic || '',
+            dateOfBirth: userData?.dateOfBirth || '',
+            age: userData?.age || 0,
+            leading: leading,
+            leadingPercent: percentages[leading] || 0,
+            percentages: percentages,
+            resultType: resultType,
+            profileType: profileType
+        };
+
+        try {
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload),
+                mode: 'no-cors' // Важно для обхода CORS
+            });
+
+            // При mode: 'no-cors' ответ будет opaque, но данные отправятся
+            console.log('✅ Данные отправлены в Google Таблицу');
+            return { success: true };
+            
+        } catch (error) {
+            console.error('❌ Ошибка отправки:', error);
+            return { success: false, error: error.message };
+        }
     }
 
     // ========== ИСТОРИЯ ==========
@@ -267,6 +311,76 @@
         };
     }
 
+    // ========== ВАЛИДАЦИЯ ФОРМЫ РУЧНОГО ВВОДА (С ФИО) ==========
+    function validateManualInputForm() {
+        // Сначала валидируем личные данные
+        const firstName = document.getElementById('manual_firstName').value.trim();
+        const lastName = document.getElementById('manual_lastName').value.trim();
+        const patronymic = document.getElementById('manual_patronymic').value.trim();
+        const dateOfBirth = document.getElementById('manual_dateOfBirth').value;
+        
+        let isValid = true;
+        let errors = {};
+        
+        // Имя обязательно
+        if (!firstName) {
+            errors.firstName = VALIDATION_MESSAGES.name_required;
+            isValid = false;
+        }
+        
+        // Дата рождения обязательна
+        if (!dateOfBirth) {
+            errors.dateOfBirth = VALIDATION_MESSAGES.dob_required;
+            isValid = false;
+        } else {
+            // Проверка возраста
+            const ageCheck = profileGenerator.isAgeValid(dateOfBirth);
+            if (!ageCheck.isValid) {
+                errors.ageWarning = ageCheck.message;
+                isValid = false;
+            }
+        }
+        
+        // Отображение ошибок в форме личных данных
+        document.querySelectorAll('.manual-form-error').forEach(el => el.classList.remove('show'));
+        document.querySelectorAll('.manual-form-group input').forEach(el => el.classList.remove('error'));
+        document.getElementById('manual_ageWarning')?.classList.remove('show');
+        
+        if (errors.firstName) {
+            document.getElementById('manual_firstNameError').classList.add('show');
+            document.getElementById('manual_firstName').classList.add('error');
+        }
+        if (errors.dateOfBirth) {
+            document.getElementById('manual_dateOfBirthError').classList.add('show');
+            document.getElementById('manual_dateOfBirth').classList.add('error');
+        }
+        if (errors.ageWarning) {
+            document.getElementById('manual_ageWarning').classList.add('show');
+            document.getElementById('manual_dateOfBirth').classList.add('error');
+        }
+        
+        if (!isValid) {
+            return { isValid: false, errors, userData: null, percentages: null };
+        }
+        
+        // Теперь валидируем проценты
+        const percentValidation = validateManualPercentages();
+        
+        return {
+            isValid: percentValidation.isValid,
+            errors: { ...errors, ...percentValidation.errors },
+            userData: {
+                firstName,
+                lastName,
+                patronymic,
+                dateOfBirth,
+                age: profileGenerator.calculateAge(dateOfBirth)
+            },
+            percentages: percentValidation.percentages,
+            sum: percentValidation.sum
+        };
+    }
+
     // ========== ОБНОВЛЕНИЕ СУММЫ ПРОЦЕНТОВ ==========
     function updatePercentSum() {
         const radicalKeys = Object.keys(RADICAL_NAMES);
@@ -308,8 +422,8 @@
     function renderStart() {
         app.innerHTML = `
             <div class="start-screen">
-                <h1><span>🧠</span>Тест на выявление психорадикалов</h1>
-                <div class="sub">В.В. Пономаренко · 35 вопросов</div>
+                <h1><span>🧠</span> Психорадикалы</h1>
+                <div class="sub">В. Пономаренко · 35 вопросов</div>
                 <div style="background:#ffffffb0; border-radius:40px; padding:20px 14px;">
                     <p style="font-size:1.2rem; margin-bottom:20px;">7 типов личности:</p>
                     <div class="welcome-grid">
@@ -454,6 +568,41 @@
                     <h2>📝 Ручной ввод процентов радикалов</h2>
                     <p style="color:#64748b; margin:10px 0 20px;">Введите процентное соотношение по каждому радикалу. Сумма должна быть равна 100%.</p>
                     
+                    <!-- Форма личных данных -->
+                    <div style="background:#f0f7ff; border-radius:20px; padding:16px; margin:16px 0; border:1px solid #bfdbfe;">
+                        <h3 style="font-size:1.1rem; margin-bottom:12px; color:#1e40af;">👤 Данные пользователя</h3>
+                        
+                        <div class="manual-form-group form-group">
+                            <label>Фамилия</label>
+                            <input type="text" id="manual_lastName" placeholder="Иванов">
+                        </div>
+                        
+                        <div class="manual-form-group form-group">
+                            <label>Имя <span class="required">*</span></label>
+                            <input type="text" id="manual_firstName" placeholder="Иван">
+                            <div class="form-error manual-form-error" id="manual_firstNameError">${VALIDATION_MESSAGES.name_required}</div>
+                        </div>
+                        
+                        <div class="manual-form-group form-group">
+                            <label>Отчество</label>
+                            <input type="text" id="manual_patronymic" placeholder="Иванович">
+                        </div>
+                        
+                        <div class="manual-form-group form-group">
+                            <label>Дата рождения <span class="required">*</span></label>
+                            <input type="date" id="manual_dateOfBirth" max="${new Date().toISOString().split('T')[0]}">
+                            <div class="form-error manual-form-error" id="manual_dateOfBirthError">${VALIDATION_MESSAGES.dob_required}</div>
+                        </div>
+                        
+                        <div class="age-warning" id="manual_ageWarning">
+                            <h4>⚠️ ${VALIDATION_MESSAGES.age_warning_title}</h4>
+                            <p>${VALIDATION_MESSAGES.age_warning_text}</p>
+                        </div>
+                    </div>
+                    <!-- Конец формы личных данных -->
+                    
+                    <h3 style="font-size:1.1rem; margin:20px 0 12px; color:#1e40af;">📊 Процентное соотношение радикалов</h3>
+                    
                     <div class="percent-inputs-grid">
                         ${inputsHtml}
                     </div>
@@ -475,8 +624,8 @@
             render(); 
         });
         
-        document.getElementById('submitManualBtn')?.addEventListener('click', () => {
-            const validation = validateManualPercentages();
+        document.getElementById('submitManualBtn')?.addEventListener('click', async () => {
+            const validation = validateManualInputForm();
             
             if (validation.isValid) {
                 // Генерация отчёта
@@ -486,16 +635,27 @@
                     percentages: validation.percentages, 
                     leading: analysis.leading, 
                     profileReport: report,
-                    user: userInfo,
-                    resultType: 'manual'
+                    user: validation.userData,
+                    resultType: 'manual',
+                    profileType: analysis.profileType
                 };
                 
-                saveResultToHistory(validation.percentages, analysis.leading, report, userInfo, 'manual');
+                // Сохранение в локальную историю
+                saveResultToHistory(validation.percentages, analysis.leading, report, validation.userData, 'manual');
+                
+                // Отправка в Google Таблицу
+                if (ENABLE_REMOTE_SAVE) {
+                    showCopyNotification('⏳ Отправка данных...');
+                    await saveToGoogleSheet(validation.userData, validation.percentages, analysis.leading, 'manual', analysis.profileType);
+                }
+                
                 currentScreen = 'result';
                 render();
             } else {
                 if (validation.errors.sum) {
                     alert(validation.errors.sum);
+                } else if (validation.errors.firstName || validation.errors.dateOfBirth || validation.errors.ageWarning) {
+                    alert('Заполните корректно личные данные (имя и дата рождения обязательны, возраст 16+)');
                 } else {
                     alert('Проверьте корректность введённых значений');
                 }
@@ -564,7 +724,7 @@
         });
     }
 
-    function finishTest() {
+    async function finishTest() {
         if (Object.keys(answers).length < QUESTIONS.length) { 
             alert(`Ответьте на все вопросы`); 
             return; 
@@ -575,7 +735,7 @@
         const leading = getLeadingRadical(percentages);
         
         // Генерация персонализированного отчёта
-        const { report } = profileGenerator.generateFullReport(percentages);
+        const { report, analysis } = profileGenerator.generateFullReport(percentages);
         
         lastResult = { 
             percentages, 
@@ -583,10 +743,19 @@
             raw,
             profileReport: report,
             user: userInfo,
-            resultType: 'test'
+            resultType: 'test',
+            profileType: analysis.profileType
         };
         
+        // Сохранение в локальную историю
         saveResultToHistory(percentages, leading, report, userInfo, 'test');
+        
+        // Отправка в Google Таблицу
+        if (ENABLE_REMOTE_SAVE) {
+            showCopyNotification('⏳ Отправка данных...');
+            await saveToGoogleSheet(userInfo, percentages, leading, 'test', analysis.profileType);
+        }
+        
         currentScreen = 'result';
         render();
     }
@@ -722,133 +891,19 @@
             <div class="method-screen">
                 <h1><span>📚</span> О методе радикалов</h1>
                 <div class="method-container">
-                    
-                    <!-- Введение -->
-                    <div style="background:#f8fafc; border-radius:28px; padding:20px; margin-bottom:20px; border:1px solid #e2e8f0;">
-                        <h3 style="font-size:1.3rem; margin-bottom:12px; color:#1a2a4f;">🔍 Что это за методика?</h3>
-                        <p style="font-size:1.05rem; line-height:1.6; color:#2d3748;">
-                            Методика «7 психорадикалов» разработана <b>Владимиром Владимировичем Пономаренко</b> — доктором психологических наук, профессором, специалистом в области экстремальной и прикладной психологии.
-                        </p>
-                        <p style="font-size:1.05rem; line-height:1.6; color:#2d3748; margin-top:10px;">
-                            В основе лежит концепция <b>акцентуаций характера</b> — устойчивых особенностей личности, которые проявляются в типичных способах мышления, эмоционального реагирования и поведения. В отличие от клинических диагнозов, акцентуации есть у каждого человека и являются вариантом нормы.
-                        </p>
-                    </div>
-    
-                    <!-- Для кого -->
-                    <div style="background:#f0f7ff; border-radius:28px; padding:20px; margin-bottom:20px; border:1px solid #bfdbfe;">
-                        <h3 style="font-size:1.3rem; margin-bottom:12px; color:#1e40af;">👥 Для кого эта методика?</h3>
-                        <ul style="font-size:1.05rem; line-height:1.7; color:#1e3a5f; padding-left:20px;">
-                            <li><b>Для саморазвития:</b> лучше понять свои сильные стороны, зоны роста и внутренние конфликты.</li>
-                            <li><b>Для карьеры:</b> выбрать подходящую профессию, стиль работы и коммуникации.</li>
-                            <li><b>Для отношений:</b> осознать свои паттерны в общении и найти гармоничных партнёров.</li>
-                            <li><b>Для руководителей:</b> эффективнее формировать команды и управлять людьми с учётом их психотипов.</li>
-                            <li><b>Для педагогов и психологов:</b> использовать как инструмент первичной диагностики и сопровождения.</li>
-                        </ul>
-                    </div>
-    
-                    <!-- Зачем -->
-                    <div style="background:#f0fdf4; border-radius:28px; padding:20px; margin-bottom:20px; border:1px solid #86efac;">
-                        <h3 style="font-size:1.3rem; margin-bottom:12px; color:#166534;">💡 Зачем это нужно?</h3>
-                        <p style="font-size:1.05rem; line-height:1.6; color:#14532d;">
-                            Понимание своего психорадикального профиля помогает:
-                        </p>
-                        <ul style="font-size:1.05rem; line-height:1.7; color:#14532d; padding-left:20px; margin-top:10px;">
-                            <li>✅ <b>Принимать более осознанные решения</b> — карьерные, личные, бытовые.</li>
-                            <li>✅ <b>Снижать уровень внутренних конфликтов</b> — понимая, какие ваши черты «спорят» друг с другом.</li>
-                            <li>✅ <b>Эффективнее выстраивать коммуникацию</b> — с коллегами, близкими, клиентами.</li>
-                            <li>✅ <b>Предотвращать выгорание</b> — зная свои ресурсы и ограничения.</li>
-                            <li>✅ <b>Развивать эмоциональный интеллект</b> — через осознание своих и чужих паттернов.</li>
-                        </ul>
-                    </div>
-    
-                    <!-- Важные принципы -->
-                    <div style="background:#fef3c7; border-radius:28px; padding:20px; margin-bottom:20px; border:1px solid #fcd34d;">
-                        <h3 style="font-size:1.3rem; margin-bottom:12px; color:#92400e;">⚠️ Важные принципы интерпретации</h3>
-                        <ul style="font-size:1.05rem; line-height:1.7; color:#78350f; padding-left:20px;">
-                            <li><b>Нет «плохих» или «хороших» радикалов.</b> Каждый тип имеет свои ресурсы и свои риски.</li>
-                            <li><b>Чистые типы встречаются редко.</b> Личность — это всегда комбинация 2-4 радикалов в разной пропорции.</li>
-                            <li><b>Профиль может меняться.</b> В течение жизни пропорции могут смещаться под влиянием опыта, окружения, осознанной работы над собой.</li>
-                            <li><b>Это не диагноз и не приговор.</b> Методика описывает тенденции, а не жёсткие рамки. Вы всегда можете развивать недостающие качества.</li>
-                            <li><b>Рекомендуемый возраст: 16+.</b> До этого возраста личность находится в стадии активного формирования, и результаты могут быть нестабильными.</li>
-                        </ul>
-                    </div>
-    
-                    <!-- Описание радикалов -->
-                    <h3 style="font-size:1.4rem; margin:24px 0 16px; color:#1a2a4f; text-align:center;">🧭 7 психорадикалов: краткий справочник</h3>
-                    
-                    <div class="radical-method-block">
-                        <h4>🎯 1. Паранойяльный (Целеустремлённый)</h4>
-                        <p><b>Ключевая черта:</b> ориентация на масштабные цели, стратегическое мышление, напор.</p>
-                        <p><b>Сильные стороны:</b> упорство, лидерские качества, видение перспективы, способность вести за собой.</p>
-                        <p><b>Зоны риска:</b> может пренебрегать деталями, быть излишне настойчивым, игнорировать мнение других.</p>
-                        <p><b>В общении:</b> речь уверенная, аргументированная, ориентирована на результат.</p>
-                    </div>
-                    
-                    <div class="radical-method-block">
-                        <h4>🎭 2. Истероидный (Демонстративный)</h4>
-                        <p><b>Ключевая черта:</b> потребность во внимании, яркое самовыражение, артистизм.</p>
-                        <p><b>Сильные стороны:</b> коммуникабельность, креативность, умение презентовать себя и идеи.</p>
-                        <p><b>Зоны риска:</b> зависимость от оценок окружающих, склонность к драматизации, поверхностность в глубинных вопросах.</p>
-                        <p><b>В общении:</b> эмоционален, выразителен, любит быть в центре внимания.</p>
-                    </div>
-                    
-                    <div class="radical-method-block">
-                        <h4>📊 3. Эпилептоидный (Организатор)</h4>
-                        <p><b>Ключевая черта:</b> любовь к порядку, структуре, правилам, контроль.</p>
-                        <p><b>Сильные стороны:</b> организованность, надёжность, дисциплина, внимание к деталям.</p>
-                        <p><b>Зоны риска:</b> ригидность, вспыльчивость при нарушении правил, трудности с импровизацией.</p>
-                        <p><b>В общении:</b> пунктуален, конкретен, ценит ясность и предсказуемость.</p>
-                    </div>
-                    
-                    <div class="radical-method-block">
-                        <h4>🧠 4. Шизоидный (Творческий)</h4>
-                        <p><b>Ключевая черта:</b> погружённость в мир идей, нестандартное мышление, независимость.</p>
-                        <p><b>Сильные стороны:</b> глубина анализа, креативность, способность к абстрактному мышлению.</p>
-                        <p><b>Зоны риска:</b> отстранённость от бытовых вопросов, сложности в эмоциональном контакте.</p>
-                        <p><b>В общении:</b> речь может быть абстрактной, эмоции сдержаны, ценит содержательные диалоги.</p>
-                    </div>
-                    
-                    <div class="radical-method-block">
-                        <h4>⚡ 5. Гипертимный (Активный)</h4>
-                        <p><b>Ключевая черта:</b> высокая активность, жажда новых впечатлений, оптимизм.</p>
-                        <p><b>Сильные стороны:</b> энергичность, адаптивность, лёгкость в установлении контактов.</p>
-                        <p><b>Зоны риска:</b> поверхностность, трудности с завершением дел, склонность к риску.</p>
-                        <p><b>В общении:</b> открыт, инициативен, любит разнообразие и динамику.</p>
-                    </div>
-                    
-                    <div class="radical-method-block">
-                        <h4>🛡 6. Тревожный (Чувствительный)</h4>
-                        <p><b>Ключевая черта:</b> осторожность, предусмотрительность, чувствительность к рискам.</p>
-                        <p><b>Сильные стороны:</b> аналитичность, исполнительность, внимание к деталям, надёжность.</p>
-                        <p><b>Зоны риска:</b> излишняя мнительность, трудности с принятием решений, избегание конфликтов.</p>
-                        <p><b>В общении:</b> тактичен, внимателен к настроению других, нуждается в поддержке.</p>
-                    </div>
-                    
-                    <div class="radical-method-block">
-                        <h4>💖 7. Эмотивный (Сопереживающий)</h4>
-                        <p><b>Ключевая черта:</b> высокая эмпатия, стремление к гармонии, чувствительность.</p>
-                        <p><b>Сильные стороны:</b> доброта, способность к поддержке, командная работа, создание комфортной атмосферы.</p>
-                        <p><b>Зоны риска:</b> нерешительность, склонность принимать чужие проблемы на свой счёт, избегание жёстких решений.</p>
-                        <p><b>В общении:</b> чуткий, мягкий, не выносит грубости и несправедливости.</p>
-                    </div>
-    
-                    <!-- Ключевые выводы -->
-                    <div class="key-points">
-                        <p><b>🔑 Ключевые выводы:</b></p>
-                        <ul style="margin-top:10px; padding-left:20px;">
-                            <li>Радикал — это не ярлык, а <b>инструмент самопознания</b>.</li>
-                            <li>Ваш профиль — это <b>уникальная комбинация</b>, а не набор изолированных черт.</li>
-                            <li>Методика прикладная: она помогает <b>действовать осознаннее</b>, а не просто «знать о себе».</li>
-                            <li>Для глубокой работы с профилем рекомендуется консультация с <b>сертифицированным специалистом</b> по методике В.В. Пономаренко.</li>
-                        </ul>
-                    </div>
-    
-                    <!-- Навигация -->
+                    <p style="font-size:1.1rem;">Краткое описание психотипов по методике <b>В.В. Пономаренко</b>:</p>
+                    <div class="radical-method-block"><h4>🎯 1. Паранойяльный (Целеустремлённый)</h4><div class="radical-desc">Лидер, стратег, ориентированный на масштабные цели. Высокий тонус, напор.</div><div class="radical-behavior"><b>Поведение:</b> Упрям, настойчив, пренебрегает деталями. Речь уверенная.</div></div>
+                    <div class="radical-method-block"><h4>🎭 2. Истероидный (Демонстративный)</h4><div class="radical-desc">Артист, жаждет внимания. Эмоционален, выразителен.</div><div class="radical-behavior"><b>Поведение:</b> Драматизирует, стремится быть в центре. Коммуникабелен.</div></div>
+                    <div class="radical-method-block"><h4>📊 3. Эпилептоидный (Организатор)</h4><div class="radical-desc">Прагматик, любит порядок, структуру, контроль.</div><div class="radical-behavior"><b>Поведение:</b> Педантичен, пунктуален, может быть вспыльчив при нарушении правил.</div></div>
+                    <div class="radical-method-block"><h4>🧠 4. Шизоидный (Творческий)</h4><div class="radical-desc">Мыслитель, погружён в свой мир идей.</div><div class="radical-behavior"><b>Поведение:</b> Отстранён от быта, речь абстрактная, эмоции сдержаны.</div></div>
+                    <div class="radical-method-block"><h4>⚡ 5. Гипертимный (Активный)</h4><div class="radical-desc">Оптимист, энергичный, ищет новые впечатления.</div><div class="radical-behavior"><b>Поведение:</b> Легкомыслен, не любит рутину, склонен к риску.</div></div>
+                    <div class="radical-method-block"><h4>🛡 6. Тревожный (Чувствительный)</h4><div class="radical-desc">Осторожный, ответственный, предусмотрительный.</div><div class="radical-behavior"><b>Поведение:</b> Избегает конфликтов, мнителен, нуждается в поддержке.</div></div>
+                    <div class="radical-method-block"><h4>💖 7. Эмотивный (Сопереживающий)</h4><div class="radical-desc">Добрый, мягкий, высокая эмпатия.</div><div class="radical-behavior"><b>Поведение:</b> Чуткий, не выносит жестокости, нерешителен.</div></div>
+                    <div class="key-points"><p><b>Ключевые особенности:</b> Радикал — устойчивая акцентуация. В чистом виде редки. Личность — сочетание 2-4 радикалов. Методика прикладная.</p></div>
                     <div class="nav-buttons">
                         <button class="nav-btn" id="backFromMethod">🏠 На главную</button>
-                        <button class="nav-btn action-btn" id="startTestFromMethod">▶ Пройти тест</button>
+                        <button class="nav-btn" id="startTestFromMethod">▶ Тест</button>
                     </div>
-                    
                 </div>
             </div>
         `;

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>СПП-тест: тревожность, фобии, панические атаки</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e0eaf4 0%, #cfdef3 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 40px 20px;
+            color: #1a2c3e;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 56px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .test-header {
+            background: linear-gradient(135deg, #2b5e6b, #1e3e4a);
+            padding: 32px 32px 28px 32px;
+            color: white;
+            text-align: center;
+        }
+
+        .test-header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            margin-bottom: 10px;
+        }
+
+        .test-header p {
+            font-size: 1rem;
+            opacity: 0.85;
+            max-width: 700px;
+            margin: 12px auto 0;
+            line-height: 1.4;
+        }
+
+        .age-note {
+            background: rgba(255,255,240,0.2);
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+
+        .methodology-panel, .info-panel, .spielberger-panel {
+            margin: 24px 32px 0 32px;
+            padding: 20px 24px;
+            border-radius: 32px;
+        }
+
+        .methodology-panel {
+            background: linear-gradient(135deg, #e8f0f5 0%, #dfe9ef 100%);
+            border-left: 6px solid #2b5e6b;
+        }
+
+        .spielberger-panel {
+            background: linear-gradient(135deg, #f5efe8 0%, #ede5db 100%);
+            border-left: 6px solid #b5654b;
+        }
+
+        .info-panel {
+            background: #f0f6fa;
+            border-left: 6px solid #6c8d98;
+        }
+
+        .methodology-panel h3, .info-panel h3, .spielberger-panel h3 {
+            color: #1e3e4a;
+            margin-bottom: 12px;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .methodology-panel p, .info-panel p, .info-panel ul, .spielberger-panel p {
+            color: #2c4e5c;
+            line-height: 1.5;
+        }
+
+        .info-panel ul, .spielberger-panel ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .info-panel li, .spielberger-panel li {
+            margin: 6px 0;
+        }
+
+        .highlight {
+            background: rgba(43,94,107,0.1);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .questions-area {
+            padding: 20px 32px 32px 32px;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 28px;
+            padding: 18px 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2edf2;
+            transition: all 0.2s;
+        }
+
+        .question-card:hover {
+            border-color: #bdd4df;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 14px;
+            color: #1a3a44;
+            line-height: 1.4;
+        }
+
+        .scale-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scale-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f8fbfd;
+            padding: 6px 8px;
+            border-radius: 40px;
+            min-width: 80px;
+            transition: 0.1s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            flex: 1;
+            text-align: center;
+        }
+
+        .scale-option.selected {
+            background: #e0f0f5;
+            border-color: #2b5e6b;
+            box-shadow: 0 2px 6px rgba(43,94,107,0.2);
+        }
+
+        .scale-option input {
+            margin-bottom: 5px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #2b5e6b;
+        }
+
+        .scale-option label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #2c4e5c;
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            background: #e2edf2;
+            border-radius: 30px;
+            height: 10px;
+            margin: 20px 32px 0 32px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: #2b5e6b;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 30px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #2b5e6b;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 32px 32px 32px;
+        }
+
+        button {
+            background: #2b5e6b;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background: #1e464f;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .reset-btn { background: #6c8d98; }
+        .reset-btn:hover { background: #55707a; }
+        .pdf-btn { background: #2f6b47; }
+        .pdf-btn:hover { background: #23553a; }
+        .copy-btn { background: #4a6f7a; }
+        .copy-btn:hover { background: #3a5a64; }
+
+        .results-card {
+            margin: 20px 32px 40px 32px;
+            background: white;
+            border-radius: 40px;
+            padding: 28px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+            border-top: 6px solid #2b5e6b;
+        }
+
+        .results-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            color: #1f4e5a;
+        }
+
+        .score-badge {
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: #eef3f7;
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 40px;
+            margin-bottom: 20px;
+        }
+
+        .dimension-block {
+            background: #fafeff;
+            border-radius: 28px;
+            padding: 18px;
+            margin-bottom: 24px;
+            border-left: 8px solid;
+        }
+
+        .dimension-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .dimension-score {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #2c5a66;
+        }
+
+        .recommendation {
+            line-height: 1.5;
+            color: #1e3e48;
+            margin-top: 8px;
+        }
+
+        .methodology-details {
+            background: #f5f9fc;
+            border-radius: 28px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px solid #d4e2e8;
+        }
+
+        .methodology-details h4 {
+            color: #1e3e4a;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+
+        hr {
+            margin: 20px 0;
+            border: 0;
+            height: 1px;
+            background: linear-gradient(to right, #cbdbe0, transparent);
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e464f;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 32px 32px;
+            font-size: 0.75rem;
+            color: #6c8d98;
+        }
+
+        @media (max-width: 680px) {
+            .scale-option { min-width: 65px; padding: 4px; }
+            .scale-option label { font-size: 0.65rem; }
+            .test-header h1 { font-size: 1.6rem; }
+            button { padding: 10px 18px; font-size: 0.85rem; }
+            .dimension-title { font-size: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="test-container" id="testContainer"></div>
+<div id="copyToast" class="copy-toast">✅ Результат скопирован</div>
+
+<script>
+    // ==================== ИСХОДНЫЕ ВОПРОСЫ (52 шт) ====================
+    const rawQuestions = [
+        "Я чувствую себя напряженно.",
+        "Мне кажется, что меня что-то тревожит.",
+        "Я ощущаю внутреннее беспокойство.",
+        "Мне трудно расслабиться.",
+        "Я ощущаю страх, что что-то может пойти не так.",
+        "Моё сердце бьётся чаще, чем обычно.",
+        "Я чувствую себя неспокойно.",
+        "Я ощущаю внезапные приступы волнения.",
+        "Мне кажется, что я легко раздражаюсь.",
+        "У меня усилилось потоотделение.",
+        "Я испытываю трудности с концентрацией.",
+        "Я испытываю неприятное напряжение в мышцах.",
+        "Я ощущаю, что нахожусь в состоянии стресса.",
+        "Мне трудно сосредоточиться на текущих задачах.",
+        "Я чувствую себя уязвимым перед обстоятельствами.",
+        "Я ощущаю себя тревожно без видимой причины.",
+        "У меня появилось ощущение дискомфорта.",
+        "Я испытываю панику или страх.",
+        "Мне кажется, что я не могу контролировать ситуацию.",
+        "Я ощущаю тревогу, даже если объективных причин нет.",
+        "Я часто беспокоюсь о будущем.",
+        "Мне свойственно волноваться даже по незначительным поводам.",
+        "Я испытываю тревогу даже в обычных жизненных ситуациях.",
+        "Мне трудно оставаться спокойным в напряжённых ситуациях.",
+        "Я склонен переживать задолго до наступления события.",
+        "Даже в безопасной обстановке я могу чувствовать тревогу.",
+        "Я часто чувствую напряжение без очевидных причин.",
+        "Я тревожусь о том, что может произойти в будущем.",
+        "Мне свойственно задумываться о негативных последствиях.",
+        "В стрессовых ситуациях я ощущаю чрезмерную тревожность.",
+        "Я легко поддаюсь беспокойству.",
+        "Я часто испытываю неуверенность в себе.",
+        "Мне трудно избавиться от тревожных мыслей.",
+        "Я чувствую беспокойство даже в позитивных ситуациях.",
+        "Мне сложно справляться с неожиданными трудностями.",
+        "Важные события вызывают у меня тревогу.",
+        "Я склонен переоценивать возможные риски.",
+        "Мне свойственно долго переживать после стрессовых ситуаций.",
+        "Я ощущаю тревожность даже в знакомых ситуациях.",
+        "Я часто чувствую беспокойство в повседневной жизни.",
+        "Время от времени у меня возникает острый приступ паники — мне кажется, что я умираю.",
+        "Мне кажется, что у меня какое-то заболевание, которое может привести к смерти, хотя ясного медицинского диагноза у меня нет.",
+        "Бывают моменты, когда меня охватывает сильный страх смерти.",
+        "У меня много разных симптомов телесного недомогания (например, сердцебиение, чувство, что я задыхаюсь, повышается давление, экстрасистолы, головокружения, «ватная голова», «тяжесть в голове», головная боль, потливость, чувство тошноты, жидкий стул, мёрзнут руки или ноги, неприятные ощущения в теле и т.д.).",
+        "Мне ставили диагноз «панической атаки» (или «вегетососудистой дистонии», «нейроциркуляторной дистонии», «вегетативного расстройства») и пока нельзя сказать, что это прошло.",
+        "Есть обстоятельства или ситуации, в которых меня охватывает чувство паники, становится плохо или что-то плохое происходит с организмом (например, в толпе, когда мало воздуха, в общественном транспорте, в лифте, в самолёте, когда никого нет рядом, или когда, напротив, очень шумно и много людей).",
+        "Если я из-за чего-то по-нервничаю, то у меня может случиться приступ страха с телесными симптомами (не обязательно сразу, иногда чуть позже, часто по вечерам).",
+        "Мне трудно доверять врачам, потому что они не могут сказать что-то определённое о моих состояниях, а лечение, которое они назначают, не особо работает.",
+        "Когда мне становится неуютно и я чувствую, что может случиться приступ, мне иногда помогают противотревожные средства — транквилизаторы (феназепам, диазепам, ксанакс, спитомин, грандаксин, атаракс и др.), успокаивающие средства (препараты с валерианой, пустырником, зверобоем, пионом и др.), корвалол и валокордин.",
+        "Мне бы очень хотелось понять, что со мной происходит, почему возникают приступы и можно ли вообще от этого избавиться.",
+        "Из-за моего состояния у меня нарушился сон — я не могу заснуть, кручусь в кровати, мне страшно и тревожно. Я могу проснуться среди ночи, в поту, от сердцебиений, испытываю острое чувство страха.",
+        "Бывает я мучаюсь навязчивыми мыслями — они крутятся в голове без остановки, я думаю о плохом, мне тревожно и, кажется, никто толком меня не понимает — дают бесполезные советы: говорят, что мне надо просто успокоиться, не нервничать, отвлечься и т.д."
+    ];
+
+    // Перемешиваем вопросы рандомно
+    function shuffleArray(arr) {
+        const shuffled = [...arr];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    const shuffledQuestions = shuffleArray(rawQuestions);
+
+    // Формируем тестовые данные с перемешанными вопросами
+    const testData = {
+        testInfo: {
+            title: "СПП-диагностика",
+            description: "Системная поведенческая оценка тревожности, фобических реакций и панических проявлений",
+            ageRange: "16–80 лет",
+            instruction: "Оцените, как часто вы испытывали описанные переживания за последние 4 недели."
+        },
+        answerOptions: [
+            { value: "never", label: "Почти никогда", score: 0 },
+            { value: "rarely", label: "Иногда", score: 1 },
+            { value: "sometimes", label: "Часто", score: 2 },
+            { value: "always", label: "Почти всегда", score: 3 }
+        ],
+        dimensions: [
+            { id: "anxiety", name: "Тревожность", icon: "😟", color: "#2c6e6b", maxScore: 52 * 3 },
+            { id: "panic", name: "Панические проявления", icon: "⚡", color: "#b5654b", maxScore: 52 * 3 }
+        ],
+        questions: shuffledQuestions.map((text, idx) => ({
+            id: idx + 1,
+            text: text,
+            dimension: "anxiety"
+        })),
+        interpretationLevels: [
+            { maxPercent: 20, level: "🟢 Низкий уровень тревожности", recommendation: "Симптомы выражены минимально. Ваша нервная система преимущественно адаптивна. Рекомендуется поддерживать здоровый режим сна, физическую активность и практики осознанности для профилактики." },
+            { maxPercent: 45, level: "🔵 Умеренный уровень тревожности", recommendation: "Наблюдаются отдельные признаки тревоги, которые могут усиливаться при стрессе. Полезно осваивать дыхательные техники (диафрагмальное дыхание), вести дневник эмоций и прорабатывать доминантные переживания." },
+            { maxPercent: 70, level: "🟠 Выраженный уровень тревожности (зона риска)", recommendation: "Симптомы заметно влияют на качество жизни. Рекомендуется системная работа: анализ дезадаптивных стереотипов поведения, когнитивная реструктуризация, консультация психотерапевта." },
+            { maxPercent: 100, level: "🔴 Высокий / клинически значимый уровень тревожности", recommendation: "Высокая интенсивность проявлений. Рекомендована очная встреча с психотерапевтом или психиатром. Системная поведенческая психотерапия может помочь в формировании новой адаптивной доминанты." }
+        ]
+    };
+
+    // Пересчитываем максимальный балл
+    testData.dimensions[0].maxScore = testData.questions.length * 3;
+    testData.dimensions[1].maxScore = testData.questions.length * 3;
+
+    // ==================== ЛОГИКА ТЕСТА ====================
+    let userAnswers = new Array(testData.questions.length).fill(null);
+    const STORAGE_KEY = 'spp_test_answers_v3';
+
+    function loadFromCache() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length === testData.questions.length) {
+                    userAnswers = parsed;
+                }
+            } catch(e) {}
+        }
+    }
+
+    function saveToCache() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(userAnswers));
+    }
+
+    function getScoreFromValue(value) {
+        const option = testData.answerOptions.find(opt => opt.value === value);
+        return option ? option.score : 0;
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(a => a !== null).length;
+        const percent = (answered / testData.questions.length) * 100;
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        if (progressFill) progressFill.style.width = percent + '%';
+        if (progressText) progressText.textContent = `Отвечено: ${answered} из ${testData.questions.length} (${Math.round(percent)}%)`;
+    }
+
+    function renderApp() {
+        const container = document.getElementById('testContainer');
+        container.innerHTML = `
+            <div class="test-header">
+                <h1>📋 ${testData.testInfo.title}</h1>
+                <p>${testData.testInfo.description}</p>
+                <div class="age-note">🔞 Возрастная группа: ${testData.testInfo.ageRange} | Для самодиагностики и самонаблюдения</div>
+            </div>
+            
+            <div class="methodology-panel">
+                <h3>📖 О методике системной поведенческой психотерапии (СПП)</h3>
+                <p><strong>СПП</strong> — подход, разработанный на основе отечественной научной школы (И.М. Сеченов, И.П. Павлов, А.А. Ухтомский). В основе диагностики лежит оценка <strong>дезадаптивных доминант</strong> — устойчивых очагов возбуждения в нервной системе, определяющих паттерны тревожного реагирования.</p>
+                <p>Данный тест оценивает уровень тревожности и панических проявлений на основе 52 вопросов.</p>
+                <div class="highlight">📊 <strong>Методика расчёта:</strong> Каждый ответ оценивается от 0 до 3 баллов. Баллы суммируются. Интерпретация основана на проценте от максимального балла.</div>
+            </div>
+            
+            <div class="spielberger-panel">
+                <h3>📊 Тест Спилбергера-Ханина на тревожность</h3>
+                <p>Тест Спилбергера-Ханина – это методика психологической диагностики, разработанная Чарльзом Д. Спилбергером и адаптированная Ю.Л. Ханиным, предназначенная для оценки уровня тревожности. Тест на тревожность широко применяется в психологии, медицине и HR-сфере для анализа эмоционального состояния человека. В случае крайне тяжелого состояния вызванный на дом психиатр стабилизирует его.</p>
+                <p><strong>Что измеряет тест?</strong> Методика оценивает два вида тревожности:</p>
+                <ul>
+                    <li><strong>Личностная тревожность (ЛТ)</strong> – устойчивая характеристика человека, его склонность воспринимать разные ситуации как угрожающие.</li>
+                    <li><strong>Ситуативная тревожность (СТ)</strong> – текущее эмоциональное состояние, возникающее в ответ на конкретные обстоятельства.</li>
+                </ul>
+                <p><strong>Структура теста:</strong> Анкета состоит из 40 утверждений, разделенных на две шкалы. Оценка проводится по 4-балльной шкале (1 – «почти никогда», 2 – «иногда», 3 – «часто», 4 – «почти всегда»).</p>
+                <p><strong>Как интерпретировать результаты?</strong> Суммарный балл по каждой шкале позволяет определить уровень тревожности:</p>
+                <ul>
+                    <li>≤ 30 баллов – низкая тревожность</li>
+                    <li>31–45 баллов – умеренная тревожность</li>
+                    <li>≥ 46 баллов – высокая тревожность</li>
+                </ul>
+                <p><strong>Где применяется тест?</strong> В психологии – для диагностики тревожных расстройств (чтобы не понадобился психиатр на дом). В HR – при подборе персонала и оценке стресса сотрудников. В медицине – для оценки эмоционального состояния пациентов. В спорте – для работы с психологическим напряжением спортсменов.</p>
+            </div>
+            
+            <div class="info-panel">
+                <h3>📌 Инструкция</h3>
+                <ul>
+                    <li>${testData.testInfo.instruction}</li>
+                    <li>Выберите один вариант для каждого утверждения: <strong>${testData.answerOptions.map(o => o.label).join(', ')}</strong>.</li>
+                    <li>Ответы автоматически сохраняются в памяти браузера — вы можете вернуться к тесту позже.</li>
+                    <li>После ответа на все ${testData.questions.length} вопросов нажмите «Показать результаты».</li>
+                </ul>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText"></div>
+            
+            <div class="questions-area" id="questionsArea"></div>
+            
+            <div class="action-buttons">
+                <button id="submitBtn">📊 ПОКАЗАТЬ РЕЗУЛЬТАТЫ</button>
+                <button id="resetBtn" class="reset-btn">⟳ ОЧИСТИТЬ ВСЁ</button>
+                <button id="copyResultsBtn" class="copy-btn" style="display: none;">📋 КОПИРОВАТЬ РЕЗУЛЬТАТ</button>
+                <button id="pdfBtn" class="pdf-btn" style="display: none;">📄 СОХРАНИТЬ В PDF</button>
+            </div>
+            
+            <div id="resultsContainer" style="display: none;"></div>
+            <footer>© Системная поведенческая диагностика | Основано на подходах СПП и тесте Спилбергера-Ханина. Данный тест не заменяет консультацию специалиста.</footer>
+        `;
+        
+        renderQuestions();
+        attachGlobalEvents();
+        updateProgress();
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questionsArea');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        testData.questions.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.innerHTML = `
+                <div class="question-text">${idx+1}. ${q.text}</div>
+                <div class="scale-row" data-qidx="${idx}">
+                    ${createScaleOptions(idx)}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+        attachScaleEvents();
+    }
+
+    function createScaleOptions(qIdx) {
+        let html = '';
+        testData.answerOptions.forEach(opt => {
+            const checked = (userAnswers[qIdx] === opt.value) ? 'checked' : '';
+            html += `
+                <div class="scale-option" data-opt="${opt.value}" data-qidx="${qIdx}">
+                    <input type="radio" name="q${qIdx}" value="${opt.value}" id="q${qIdx}_${opt.value}" ${checked}>
+                    <label for="q${qIdx}_${opt.value}">${opt.label}</label>
+                </div>
+            `;
+        });
+        return html;
+    }
+
+    function attachScaleEvents() {
+        for (let i = 0; i < testData.questions.length; i++) {
+            const radios = document.querySelectorAll(`input[name="q${i}"]`);
+            radios.forEach(radio => {
+                radio.removeEventListener('change', handleRadioChange);
+                radio.addEventListener('change', handleRadioChange);
+            });
+        }
+        
+        document.querySelectorAll('.scale-option').forEach(optDiv => {
+            const radio = optDiv.querySelector('input');
+            if (radio && radio.checked) optDiv.classList.add('selected');
+            else optDiv.classList.remove('selected');
+            
+            optDiv.style.cursor = 'pointer';
+            optDiv.removeEventListener('click', handleOptionClick);
+            optDiv.addEventListener('click', handleOptionClick);
+        });
+    }
+
+    function handleOptionClick(e) {
+        const target = e.currentTarget;
+        const radio = target.querySelector('input');
+        if (radio && !radio.checked) {
+            radio.checked = true;
+            const changeEvent = new Event('change', { bubbles: true });
+            radio.dispatchEvent(changeEvent);
+        }
+    }
+
+    function handleRadioChange(e) {
+        const radio = e.target;
+        const name = radio.name;
+        const qIndex = parseInt(name.substring(1));
+        userAnswers[qIndex] = radio.value;
+        saveToCache();
+        updateProgress();
+        
+        const container = document.querySelector(`.scale-row[data-qidx="${qIndex}"]`);
+        if (container) {
+            container.querySelectorAll('.scale-option').forEach(opt => {
+                const inp = opt.querySelector('input');
+                if (inp && inp.checked) opt.classList.add('selected');
+                else opt.classList.remove('selected');
+            });
+        }
+    }
+
+    function computeScores() {
+        let totalScore = 0;
+        testData.questions.forEach((q, idx) => {
+            const answerVal = userAnswers[idx];
+            const points = answerVal ? getScoreFromValue(answerVal) : 0;
+            totalScore += points;
+        });
+        return { total: totalScore };
+    }
+
+    function getInterpretation(percent) {
+        for (const level of testData.interpretationLevels) {
+            if (percent <= level.maxPercent) {
+                return level;
+            }
+        }
+        return testData.interpretationLevels[testData.interpretationLevels.length - 1];
+    }
+
+    function renderResults() {
+        const scores = computeScores();
+        const resultsDiv = document.getElementById('resultsContainer');
+        
+        const totalMax = testData.questions.length * 3;
+        const totalPercent = Math.round((scores.total / totalMax) * 100);
+        const interpretation = getInterpretation(totalPercent);
+        
+        // Шкала Спилбергера-Ханина (адаптированная)
+        let spielbergerLevel = "";
+        if (scores.total <= 30) spielbergerLevel = "Низкая тревожность";
+        else if (scores.total <= 45) spielbergerLevel = "Умеренная тревожность";
+        else spielbergerLevel = "Высокая тревожность";
+        
+        const html = `
+            <div class="results-card" id="pdfExportArea">
+                <h2>📋 Результаты самодиагностики</h2>
+                <div class="score-badge">Общий балл: ${scores.total} из ${totalMax} (${totalPercent}%)</div>
+                <div class="score-badge" style="background: #e8f0f5;">По шкале Спилбергера-Ханина: ${spielbergerLevel}</div>
+                
+                <div class="dimension-block" style="border-left-color: #2c6e6b;">
+                    <div class="dimension-title">😟 Общий уровень тревожности</div>
+                    <div class="dimension-score">Баллы: ${scores.total} / ${totalMax} (${totalPercent}%) — ${interpretation.level}</div>
+                    <div class="recommendation">💡 ${interpretation.recommendation}</div>
+                </div>
+                
+                <div class="methodology-details">
+                    <h4>📊 О методике расчёта и ключах к тесту</h4>
+                    <p><strong>Шкала ответов (баллы):</strong><br>
+                    • Почти никогда — 0 баллов<br>
+                    • Иногда — 1 балл<br>
+                    • Часто — 2 балла<br>
+                    • Почти всегда — 3 балла</p>
+                    <p><strong>Ключи к тесту:</strong><br>
+                    • Все ${testData.questions.length} вопросов оценивают общий уровень тревожности и панических проявлений<br>
+                    • Максимальный балл: ${totalMax}<br>
+                    • Минимальный балл: 0</p>
+                    <p><strong>Интерпретация по тесту Спилбергера-Ханина (адаптированная):</strong><br>
+                    • ≤ 30 баллов — низкая тревожность<br>
+                    • 31–45 баллов — умеренная тревожность<br>
+                    • ≥ 46 баллов — высокая тревожность</p>
+                    <p><strong>Интерпретация по уровню выраженности:</strong><br>
+                    • 0–20% — низкий уровень<br>
+                    • 21–45% — умеренный уровень<br>
+                    • 46–70% — выраженный уровень<br>
+                    • 71–100% — высокий (клинически значимый) уровень</p>
+                    <p><strong>Теоретическая основа:</strong> Методика базируется на концепции доминанты А.А. Ухтомского и принципах системной поведенческой психотерапии (СПП), а также на тесте Спилбергера-Ханина для оценки тревожности.</p>
+                </div>
+                <hr>
+                <p style="font-size:0.85rem;"><strong>Важно:</strong> Результаты не являются медицинским диагнозом. При высоких показателях рекомендуется консультация специалиста. В случае крайне тяжелого состояния вызванный на дом психиатр стабилизирует его.</p>
+                <p style="font-size:0.75rem;">📅 Дата: ${new Date().toLocaleDateString()}</p>
+            </div>
+        `;
+        
+        resultsDiv.innerHTML = html;
+        resultsDiv.style.display = 'block';
+        document.getElementById('copyResultsBtn').style.display = 'inline-flex';
+        document.getElementById('pdfBtn').style.display = 'inline-flex';
+        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function getResultsText() {
+        const scores = computeScores();
+        const totalMax = testData.questions.length * 3;
+        const totalPercent = Math.round((scores.total / totalMax) * 100);
+        const interpretation = getInterpretation(totalPercent);
+        
+        let spielbergerLevel = "";
+        if (scores.total <= 30) spielbergerLevel = "Низкая тревожность";
+        else if (scores.total <= 45) spielbergerLevel = "Умеренная тревожность";
+        else spielbergerLevel = "Высокая тревожность";
+        
+        return `📋 РЕЗУЛЬТАТЫ СПП-ДИАГНОСТИКИ
+Дата: ${new Date().toLocaleDateString()}
+
+Общий балл: ${scores.total} из ${totalMax} (${totalPercent}%)
+По шкале Спилбергера-Ханина: ${spielbergerLevel}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Уровень тревожности: ${interpretation.level}
+Рекомендация: ${interpretation.recommendation}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 МЕТОДИКА РАСЧЁТА:
+• Шкала: 0 = "Почти никогда", 1 = "Иногда", 2 = "Часто", 3 = "Почти всегда"
+• Всего вопросов: ${testData.questions.length}
+• Максимальный балл: ${totalMax}
+
+Интерпретация по тесту Спилбергера-Ханина:
+• ≤ 30 баллов — низкая тревожность
+• 31–45 баллов — умеренная тревожность
+• ≥ 46 баллов — высокая тревожность
+
+Важно: Результаты не являются медицинским диагнозом. При высоких показателях рекомендуется консультация специалиста.`;
+    }
+
+    function resetAll() {
+        userAnswers = new Array(testData.questions.length).fill(null);
+        saveToCache();
+        for (let i = 0; i < testData.questions.length; i++) {
+            const radios = document.querySelectorAll(`input[name="q${i}"]`);
+            radios.forEach(radio => radio.checked = false);
+        }
+        document.querySelectorAll('.scale-option').forEach(opt => opt.classList.remove('selected'));
+        const resultsDiv = document.getElementById('resultsContainer');
+        if (resultsDiv) {
+            resultsDiv.style.display = 'none';
+            resultsDiv.innerHTML = '';
+        }
+        const copyBtn = document.getElementById('copyResultsBtn');
+        const pdfBtn = document.getElementById('pdfBtn');
+        if (copyBtn) copyBtn.style.display = 'none';
+        if (pdfBtn) pdfBtn.style.display = 'none';
+        updateProgress();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function checkAndShowResults() {
+        const allAnswered = userAnswers.every(ans => ans !== null);
+        if (!allAnswered) {
+            const unanswered = userAnswers.filter(a => a === null).length;
+            alert(`Вы ответили не на все вопросы. Осталось ${unanswered} вопросов. Пожалуйста, завершите тест.`);
+            return false;
+        }
+        return true;
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('copyToast');
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        setTimeout(() => toast.style.opacity = '0', 2000);
+    }
+
+    async function copyResults() {
+        const text = getResultsText();
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('✅ Результат скопирован в буфер обмена');
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('✅ Результат скопирован');
+        }
+    }
+
+    function generatePDF() {
+        const element = document.getElementById('pdfExportArea');
+        if (!element) {
+            alert("Сначала нажмите «Показать результаты», чтобы сформировать отчёт.");
+            return;
+        }
+        const btn = document.getElementById('pdfBtn');
+        const original = btn.innerHTML;
+        btn.innerHTML = '⏳ СОЗДАНИЕ PDF...';
+        btn.disabled = true;
+        
+        setTimeout(() => {
+            html2pdf().set({
+                margin: 0.5,
+                filename: `SPP_test_${new Date().toISOString().slice(0,10)}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, letterRendering: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            }).from(element).save().finally(() => {
+                btn.innerHTML = original;
+                btn.disabled = false;
+            });
+        }, 100);
+    }
+
+    function attachGlobalEvents() {
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) submitBtn.onclick = () => checkAndShowResults() && renderResults();
+        const resetBtn = document.getElementById('resetBtn');
+        if (resetBtn) resetBtn.onclick = resetAll;
+        const copyBtn = document.getElementById('copyResultsBtn');
+        if (copyBtn) copyBtn.onclick = copyResults;
+        const pdfBtn = document.getElementById('pdfBtn');
+        if (pdfBtn) pdfBtn.onclick = generatePDF;
+    }
+
+    // Инициализация
+    loadFromCache();
+    renderApp();
+</script>
+</body>
+</html>

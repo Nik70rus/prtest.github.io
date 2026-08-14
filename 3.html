@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тест: Семь радикалов Пономаренко</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -195,6 +194,9 @@
             cursor: pointer;
             transition: background 0.15s;
             border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-primary {
@@ -226,6 +228,22 @@
         }
         .btn-success:hover {
             background: #14633b;
+        }
+
+        .btn-info {
+            background: #1a6a8a;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #135a77;
+        }
+
+        .btn-share {
+            background: #6a4a8a;
+            color: white;
+        }
+        .btn-share:hover {
+            background: #5a3a77;
         }
 
         .results-container {
@@ -352,6 +370,8 @@
             .timer-box { align-self: flex-start; }
             .question-card { padding: 18px; }
             .result-profile { grid-template-columns: 1fr; }
+            .footer-actions { flex-direction: column; }
+            .footer-actions .btn { width: 100%; justify-content: center; }
         }
 
         .disclaimer {
@@ -371,6 +391,27 @@
             border-radius: 16px;
             padding: 14px 20px;
             margin: 16px 0;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2a4a;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
         }
     </style>
 </head>
@@ -412,13 +453,16 @@
         <div id="profileGrid" class="result-profile"></div>
         <div id="errorsBlock" class="error-list"></div>
         <div class="footer-actions">
-            <button class="btn btn-success" id="exportPdfBtn">📄 Скачать PDF</button>
             <button class="btn btn-success" id="exportTxtBtn">📄 Скачать TXT</button>
+            <button class="btn btn-info" id="copyResultBtn">📋 Копировать результат</button>
+            <button class="btn btn-share" id="shareResultBtn">📤 Поделиться</button>
             <button class="btn btn-outline" id="retryBtn">🔄 Пройти заново</button>
         </div>
         <div class="disclaimer">* Оценка по каждому радикалу: 3/3 — отлично, 2/3 — хорошо, ≤1 — слабо</div>
     </div>
 </div>
+
+<div id="toast" class="toast"></div>
 
 <script>
     // ===================== ДАННЫЕ (JSON) =====================
@@ -430,7 +474,7 @@
                     {
                         "id": "A1",
                         "radical": "Тревожный",
-                        "text": "Сотрудник узнает о грядущей масштабной реорганизации с возможными сокращениями. Как он, скорее всего, отреагирует?",
+                        "text": "Сотрудник с тревожным радикалом узнает о грядущей масштабной реорганизации с возможными сокращениями. Как он, скорее всего, отреагирует?",
                         "options": [
                             "Начнет активно искать новую работу, чтобы избежать неопределенности",
                             "Предложит руководству детальный план реорганизации",
@@ -724,6 +768,7 @@
         let timerInterval = null;
         let timeSeconds = 1500;
         let isFinished = false;
+        let resultText = '';
 
         const radicalsList = ['Тревожный','Истероидный','Паранойяльный','Эпилептоидный','Гипертимный','Шизоидный','Эмотивный'];
 
@@ -738,13 +783,22 @@
         const nextBtn = document.getElementById('nextQuestionBtn');
         const resetBtn = document.getElementById('resetTestBtn');
         const retryBtn = document.getElementById('retryBtn');
-        const exportPdfBtn = document.getElementById('exportPdfBtn');
         const exportTxtBtn = document.getElementById('exportTxtBtn');
+        const copyResultBtn = document.getElementById('copyResultBtn');
+        const shareResultBtn = document.getElementById('shareResultBtn');
         const startBtn = document.getElementById('startTestBtn');
         const userNameInput = document.getElementById('userNameInput');
         const userNameDisplay = document.getElementById('userNameDisplay');
         const profileGrid = document.getElementById('profileGrid');
         const errorsBlock = document.getElementById('errorsBlock');
+        const toast = document.getElementById('toast');
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._hide);
+            toast._hide = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
 
         function shuffle(arr) {
             for (let i = arr.length - 1; i > 0; i--) {
@@ -884,6 +938,41 @@
             showResults();
         }
 
+        function generateResultText(userName, correctCount, total, percent, grade, radicalStats, errors) {
+            let lines = [];
+            lines.push('📊 РЕЗУЛЬТАТЫ ТЕСТА «СЕМЬ РАДИКАЛОВ»');
+            lines.push('='.repeat(50));
+            lines.push(`👤 Имя: ${userName}`);
+            lines.push(`📅 Дата: ${new Date().toLocaleString()}`);
+            lines.push('');
+            lines.push(`✅ Правильных: ${correctCount}/${total} (${percent}%)`);
+            lines.push(`🎯 Оценка (10-балльная): ${grade} / 10`);
+            lines.push('');
+            lines.push('📈 ПРОФИЛЬ ПО РАДИКАЛАМ:');
+            radicalsList.forEach(r => {
+                const stat = radicalStats[r];
+                if (!stat) return;
+                const score = stat.correct;
+                const max = stat.total;
+                let status = score === max ? 'Отлично' : (score >= max-1 ? 'Хорошо' : 'Слабо');
+                lines.push(`  ${r}: ${score}/${max} (${status})`);
+            });
+            lines.push('');
+            lines.push('❌ ОШИБКИ С ПОЯСНЕНИЯМИ:');
+            if (errors.length === 0) {
+                lines.push('  ✅ Без ошибок!');
+            } else {
+                errors.forEach((e, i) => {
+                    lines.push(`  ${i+1}. ${e.radical} — ${e.text}`);
+                    lines.push(`     → Ваш ответ: ${e.selected}`);
+                    lines.push(`     → Правильный: ${e.correct}`);
+                    lines.push(`     → Пояснение: ${e.comment}`);
+                    lines.push('');
+                });
+            }
+            return lines.join('\n');
+        }
+
         function showResults() {
             const total = allQuestions.length;
             let correctCount = 0;
@@ -957,8 +1046,9 @@
             if (existingSummary) existingSummary.remove();
             gridParent.insertBefore(summary, profileGrid);
 
-            window._pdfData = { userName, correctCount, total, percent, grade, radicalStats, errors };
-            window._txtData = { userName, correctCount, total, percent, grade, radicalStats, errors };
+            // Сохраняем данные для экспорта
+            resultText = generateResultText(userName, correctCount, total, percent, grade, radicalStats, errors);
+            window._resultData = { userName, correctCount, total, percent, grade, radicalStats, errors, resultText };
         }
 
         function goNext() {
@@ -986,119 +1076,79 @@
             questionsContainer.innerHTML = '';
             progressFill.style.width = '0%';
             progressLabel.textContent = '0 из 0';
+            resultText = '';
         }
 
-        // ---------- PDF ЭКСПОРТ (UTF-8) ----------
-        function exportPDF() {
-            const d = window._pdfData;
-            if (!d) return;
-            const { userName, correctCount, total, percent, grade, radicalStats, errors } = d;
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'pt', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const margin = 40;
-            let y = 50;
-
-            doc.setFontSize(18);
-            doc.text('Результаты теста «Семь радикалов»', pageWidth/2, y, { align: 'center' });
-            y += 28;
-            doc.setFontSize(12);
-            doc.text(`Имя: ${userName}`, margin, y);
-            y += 20;
-            doc.text(`Дата: ${new Date().toLocaleString()}`, margin, y);
-            y += 28;
-            doc.setFontSize(14);
-            doc.text(`Правильных: ${correctCount}/${total} (${percent}%)`, margin, y);
-            y += 22;
-            doc.text(`Оценка (10-балльная): ${grade} / 10`, margin, y);
-            y += 30;
-
-            doc.setFontSize(12);
-            doc.text('Профиль по радикалам:', margin, y);
-            y += 18;
-            radicalsList.forEach(r => {
-                const stat = radicalStats[r];
-                if (!stat) return;
-                const score = stat.correct;
-                const max = stat.total;
-                let status = score === max ? 'Отлично' : (score >= max-1 ? 'Хорошо' : 'Слабо');
-                doc.text(`${r}: ${score}/${max} (${status})`, margin+10, y);
-                y += 18;
-                if (y > 700) { doc.addPage(); y=50; }
-            });
-
-            y += 16;
-            doc.text('Ошибки с пояснениями:', margin, y);
-            y += 18;
-            if (errors.length === 0) {
-                doc.text('✅ Без ошибок', margin+10, y);
-            } else {
-                errors.forEach((e, i) => {
-                    const lines = doc.splitTextToSize(`${i+1}. ${e.radical} — ${e.text}`, pageWidth - margin*2 - 20);
-                    doc.text(lines, margin+10, y);
-                    y += lines.length * 16;
-                    const detail = `→ Ваш: ${e.selected} | Правильный: ${e.correct}`;
-                    doc.text(detail, margin+20, y);
-                    y += 16;
-                    const comm = `Пояснение: ${e.comment}`;
-                    const commLines = doc.splitTextToSize(comm, pageWidth - margin*2 - 30);
-                    doc.text(commLines, margin+20, y);
-                    y += commLines.length * 16 + 10;
-                    if (y > 700) { doc.addPage(); y=50; }
-                });
-            }
-
-            doc.save(`radicals_test_${userName}.pdf`);
-        }
-
-        // ---------- TXT ЭКСПОРТ (Windows-1251) ----------
+        // ---------- TXT ЭКСПОРТ (UTF-8 без BOM) ----------
         function exportTXT() {
-            const d = window._txtData;
+            const d = window._resultData;
             if (!d) return;
-            const { userName, correctCount, total, percent, grade, radicalStats, errors } = d;
-
-            let lines = [];
-            lines.push('Результаты теста «Семь радикалов»');
-            lines.push('='.repeat(50));
-            lines.push(`Имя: ${userName}`);
-            lines.push(`Дата: ${new Date().toLocaleString()}`);
-            lines.push('');
-            lines.push(`Правильных: ${correctCount}/${total} (${percent}%)`);
-            lines.push(`Оценка (10-балльная): ${grade} / 10`);
-            lines.push('');
-            lines.push('Профиль по радикалам:');
-            radicalsList.forEach(r => {
-                const stat = radicalStats[r];
-                if (!stat) return;
-                const score = stat.correct;
-                const max = stat.total;
-                let status = score === max ? 'Отлично' : (score >= max-1 ? 'Хорошо' : 'Слабо');
-                lines.push(`  ${r}: ${score}/${max} (${status})`);
-            });
-            lines.push('');
-            lines.push('Ошибки с пояснениями:');
-            if (errors.length === 0) {
-                lines.push('  ✅ Без ошибок');
-            } else {
-                errors.forEach((e, i) => {
-                    lines.push(`  ${i+1}. ${e.radical} — ${e.text}`);
-                    lines.push(`     → Ваш: ${e.selected}`);
-                    lines.push(`     → Правильный: ${e.correct}`);
-                    lines.push(`     → Пояснение: ${e.comment}`);
-                    lines.push('');
-                });
-            }
-
-            const content = lines.join('\n');
-            // Кодировка Windows-1251
-            const blob = new Blob([content], { type: 'text/plain;charset=windows-1251' });
+            const content = d.resultText;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `radicals_test_${userName}.txt`;
+            link.download = `radicals_test_${d.userName}.txt`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
+            showToast('✅ TXT файл скачан');
+        }
+
+        // ---------- КОПИРОВАТЬ РЕЗУЛЬТАТ ----------
+        function copyResult() {
+            const d = window._resultData;
+            if (!d) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(d.resultText).then(() => {
+                    showToast('📋 Результат скопирован в буфер обмена');
+                }).catch(() => {
+                    fallbackCopy(d.resultText);
+                });
+            } else {
+                fallbackCopy(d.resultText);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('📋 Результат скопирован в буфер обмена');
+            } catch (e) {
+                showToast('❌ Не удалось скопировать');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // ---------- ПОДЕЛИТЬСЯ ----------
+        function shareResult() {
+            const d = window._resultData;
+            if (!d) return;
+            const text = d.resultText;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Результаты теста «Семь радикалов»',
+                    text: text,
+                }).catch(() => {});
+            } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('📋 Результат скопирован. Вставьте в любое приложение');
+                }).catch(() => {
+                    fallbackCopy(text);
+                    showToast('📋 Результат скопирован. Вставьте в любое приложение');
+                });
+            } else {
+                fallbackCopy(text);
+                showToast('📋 Результат скопирован. Вставьте в любое приложение');
+            }
         }
 
         // ---------- СОБЫТИЯ ----------
@@ -1117,8 +1167,9 @@
             if (confirm('Сбросить тест и вернуться на старт?')) resetTest();
         });
         retryBtn.addEventListener('click', resetTest);
-        exportPdfBtn.addEventListener('click', exportPDF);
         exportTxtBtn.addEventListener('click', exportTXT);
+        copyResultBtn.addEventListener('click', copyResult);
+        shareResultBtn.addEventListener('click', shareResult);
 
         userNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') startBtn.click(); });
 

@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест: Семь радикалов Пономаренко</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f2f5f9;
+            color: #1a2a4a;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(26, 42, 74, 0.12);
+            padding: 30px 35px;
+            transition: padding 0.2s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5e9f0;
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .logo-area h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #0b1a33;
+        }
+
+        .logo-area small {
+            font-size: 14px;
+            color: #5e6f8d;
+            font-weight: 400;
+            display: block;
+            margin-top: 4px;
+        }
+
+        .timer-box {
+            background: #eef2f7;
+            padding: 10px 22px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 20px;
+            color: #1a2a4a;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #d4dce8;
+        }
+
+        .timer-box.warning {
+            background: #fef0f0;
+            border-color: #e6b3b3;
+            color: #b12b2b;
+        }
+
+        .progress-section {
+            margin-bottom: 30px;
+        }
+
+        .progress-bar-bg {
+            background: #e5e9f0;
+            border-radius: 30px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #1a2a4a;
+            border-radius: 30px;
+            transition: width 0.25s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #3e5070;
+            margin-top: 8px;
+        }
+
+        .question-card {
+            background: #fafcff;
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            border: 1px solid #e5eaf2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        .q-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 500;
+            color: #3e5a7a;
+            margin-bottom: 10px;
+        }
+
+        .q-text {
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            background: white;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1px solid #dee5ef;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .option-item:hover {
+            background: #f1f6fe;
+            border-color: #b0c5df;
+        }
+
+        .option-item.selected {
+            border-color: #1a2a4a;
+            background: #eef4fc;
+            box-shadow: 0 0 0 2px rgba(26,42,74,0.15);
+        }
+
+        .option-item input[type="radio"] {
+            margin-top: 3px;
+            accent-color: #1a2a4a;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .option-item label {
+            font-size: 16px;
+            line-height: 1.4;
+            cursor: pointer;
+            color: #1f314a;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin: 20px 0 10px;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #e5eaf2;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 16px;
+            color: #1a2a4a;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: #1a2a4a;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2d3f62;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: #cdd7e5;
+        }
+
+        .btn-outline:hover {
+            background: #eef4fc;
+        }
+
+        .btn-success {
+            background: #1a7a4a;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #14633b;
+        }
+
+        .results-container {
+            margin-top: 20px;
+        }
+
+        .result-profile {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
+            gap: 18px;
+            margin: 25px 0 30px;
+        }
+
+        .radical-card {
+            background: #f8faff;
+            border-radius: 18px;
+            padding: 18px 16px;
+            border: 1px solid #dee5ef;
+        }
+
+        .radical-name {
+            font-weight: 700;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .radical-score {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .radical-status {
+            font-size: 14px;
+            margin-top: 6px;
+            color: #3e5a7a;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 14px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .badge.green { background: #d4edda; color: #0e5c31; }
+        .badge.yellow { background: #fff3cd; color: #856404; }
+        .badge.red { background: #f8d7da; color: #721c24; }
+
+        .error-list {
+            background: #fafcff;
+            border-radius: 20px;
+            padding: 18px 24px;
+            border: 1px solid #e5eaf2;
+            margin: 20px 0;
+        }
+
+        .error-item {
+            padding: 14px 0;
+            border-bottom: 1px solid #ecf0f5;
+        }
+        .error-item:last-child { border-bottom: none; }
+
+        .error-q {
+            font-weight: 500;
+        }
+        .error-detail {
+            font-size: 14px;
+            color: #405570;
+            margin-top: 6px;
+            padding-left: 12px;
+            border-left: 3px solid #b3c7df;
+        }
+
+        .footer-actions {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .input-field {
+            padding: 12px 18px;
+            border-radius: 40px;
+            border: 1px solid #cdd7e5;
+            font-size: 16px;
+            min-width: 200px;
+            background: white;
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .start-screen h2 {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .start-screen p {
+            color: #3e5a7a;
+            max-width: 500px;
+            margin: 8px auto 28px;
+            font-size: 17px;
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .flex-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 640px) {
+            .app-container { padding: 18px; }
+            .header { flex-direction: column; align-items: stretch; }
+            .timer-box { align-self: flex-start; }
+            .question-card { padding: 18px; }
+            .result-profile { grid-template-columns: 1fr; }
+        }
+
+        .disclaimer {
+            font-size: 13px;
+            color: #6b7f9f;
+            margin-top: 18px;
+            border-top: 1px solid #e5eaf2;
+            padding-top: 16px;
+            text-align: center;
+        }
+
+        .summary-block {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            background: #eef4fc;
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container" id="app">
+    <div class="header">
+        <div class="logo-area">
+            <h1>⚡ Радикалы Пономаренко</h1>
+            <small>Тест-тренажер · 21 вопрос · 25 минут</small>
+        </div>
+        <div class="timer-box" id="timerDisplay">⏱ 25:00</div>
+    </div>
+
+    <div id="startScreen" class="start-screen">
+        <h2>🧠 Проверка знаний</h2>
+        <p>В тесте 21 вопрос по семи радикалам. <br> Три блока: ситуационные, прямые и смешанные.</p>
+        <div style="margin: 8px 0 12px;">
+            <input type="text" id="userNameInput" class="input-field" placeholder="Ваше имя (для отчёта)" style="max-width:280px;">
+        </div>
+        <button class="btn btn-primary" id="startTestBtn" style="font-size:20px; padding:14px 56px;">Начать тест</button>
+        <div style="margin-top:16px; font-size:15px; color:#4b6180;">⏳ После старта запускается таймер 25 минут</div>
+    </div>
+
+    <div id="testArea" class="hidden">
+        <div class="progress-section">
+            <div class="progress-bar-bg"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-text"><span id="progressLabel">0 из 21</span><span id="blockLabel">Блок А</span></div>
+        </div>
+        <div id="questionsContainer"></div>
+        <div class="action-bar">
+            <button class="btn btn-outline" id="resetTestBtn">↺ Сбросить</button>
+            <button class="btn btn-primary" id="nextQuestionBtn">Далее →</button>
+        </div>
+    </div>
+
+    <div id="resultsArea" class="hidden results-container">
+        <h2 style="margin: 0 0 6px;">📊 Результаты</h2>
+        <div id="userNameDisplay" style="color:#3e5a7a; margin-bottom:18px;"></div>
+        <div id="profileGrid" class="result-profile"></div>
+        <div id="errorsBlock" class="error-list"></div>
+        <div class="footer-actions">
+            <button class="btn btn-success" id="exportPdfBtn">📄 Скачать PDF</button>
+            <button class="btn btn-success" id="exportTxtBtn">📄 Скачать TXT</button>
+            <button class="btn btn-outline" id="retryBtn">🔄 Пройти заново</button>
+        </div>
+        <div class="disclaimer">* Оценка по каждому радикалу: 3/3 — отлично, 2/3 — хорошо, ≤1 — слабо</div>
+    </div>
+</div>
+
+<script>
+    // ===================== ДАННЫЕ (JSON) =====================
+    const QUESTION_DATA = {
+        "blocks": {
+            "A": {
+                "name": "Ситуационные вопросы",
+                "questions": [
+                    {
+                        "id": "A1",
+                        "radical": "Тревожный",
+                        "text": "Сотрудник узнает о грядущей масштабной реорганизации с возможными сокращениями. Как он, скорее всего, отреагирует?",
+                        "options": [
+                            "Начнет активно искать новую работу, чтобы избежать неопределенности",
+                            "Предложит руководству детальный план реорганизации",
+                            "Спокойно продолжит работу, подстраиваясь под изменения",
+                            "Организует коллективное обсуждение ситуации"
+                        ],
+                        "correct": 0,
+                        "comment": "Тревожный радикал панически боится неопределенности и перемен. Его стратегия — избежать угрозы, даже ценой смены работы."
+                    },
+                    {
+                        "id": "A2",
+                        "radical": "Истероидный",
+                        "text": "На корпоративной вечеринке коллега, обычно скромный, внезапно выходит в центр и начинает громко рассказывать анекдоты и привлекать внимание. Это поведение характерно для:",
+                        "options": [
+                            "Тревожного радикала",
+                            "Истероидного радикала",
+                            "Шизоидного радикала",
+                            "Эмотивного радикала"
+                        ],
+                        "correct": 1,
+                        "comment": "Истероидный радикал постоянно нуждается во внимании и одобрении, стремится быть в центре событий."
+                    },
+                    {
+                        "id": "A3",
+                        "radical": "Паранойяльный",
+                        "text": "На совещании кто-то предлагает идею, которая противоречит давно утвержденной стратегии. Паранойяльный радикал:",
+                        "options": [
+                            "Согласится, чтобы избежать конфликта",
+                            "Подвергнет идею жесткой критике, увидев в ней скрытую угрозу",
+                            "Предложит провести дополнительное исследование",
+                            "Проигнорирует предложение"
+                        ],
+                        "correct": 1,
+                        "comment": "Паранойяльный радикал видит угрозу даже там, где ее нет. Любое несогласие воспринимается как враждебный акт."
+                    },
+                    {
+                        "id": "A4",
+                        "radical": "Эпилептоидный",
+                        "text": "В очереди кто-то пытается пролезть без очереди. Эпилептоидный радикал:",
+                        "options": [
+                            "Сделает замечание и при необходимости применит силу",
+                            "Промолчит, чтобы избежать конфликта",
+                            "Попытается договориться мирно",
+                            "Позовет охрану"
+                        ],
+                        "correct": 0,
+                        "comment": "Эпилептоидный радикал вспыльчив, резок в конфликтах, склонен к агрессивной реакции на нарушение порядка."
+                    },
+                    {
+                        "id": "A5",
+                        "radical": "Гипертимный",
+                        "text": "Проект провалился, команда в унынии. Гипертимный радикал:",
+                        "options": [
+                            "Будет переживать и анализировать ошибки",
+                            "Скажет: «Ничего страшного, в следующий раз получится!» и предложит новую идею",
+                            "Начнет искать виноватых",
+                            "Уйдет в себя и замолчит"
+                        ],
+                        "correct": 1,
+                        "comment": "Гипертимный радикал всегда оптимистичен, быстро восстанавливается после неудач и заряжает энергией окружающих."
+                    },
+                    {
+                        "id": "A6",
+                        "radical": "Шизоидный",
+                        "text": "На шумной вечеринке человек сидит в углу, читает книгу и полностью игнорирует окружающих. Это характерно для:",
+                        "options": [
+                            "Тревожного радикала",
+                            "Истероидного радикала",
+                            "Шизоидного радикала",
+                            "Гипертимного радикала"
+                        ],
+                        "correct": 2,
+                        "comment": "Шизоидный радикал интровертен, его внутренний мир важнее внешних контактов, он избегает излишней социальной стимуляции."
+                    },
+                    {
+                        "id": "A7",
+                        "radical": "Эмотивный",
+                        "text": "Коллега плачет после того, как начальник сделал ей замечание. Это реакция характерна для:",
+                        "options": [
+                            "Эпилептоидного радикала",
+                            "Эмотивного радикала",
+                            "Паранойяльного радикала",
+                            "Истероидного радикала"
+                        ],
+                        "correct": 1,
+                        "comment": "Эмотивный радикал очень чувствителен, глубоко переживает критику и эмоционально раним."
+                    }
+                ]
+            },
+            "B": {
+                "name": "Прямые вопросы",
+                "questions": [
+                    {
+                        "id": "B1",
+                        "radical": "Тревожный",
+                        "text": "Какая главная мотивация тревожного радикала?",
+                        "options": [
+                            "Власть и контроль",
+                            "Безопасность и избегание риска",
+                            "Признание и внимание",
+                            "Новизна и приключения"
+                        ],
+                        "correct": 1,
+                        "comment": "Безопасность — ключевая потребность тревожного радикала, он избегает любого риска и неопределенности."
+                    },
+                    {
+                        "id": "B2",
+                        "radical": "Истероидный",
+                        "text": "Какая потребность является ведущей для истероидного радикала?",
+                        "options": [
+                            "Безопасность",
+                            "Справедливость",
+                            "Внимание и признание",
+                            "Интеллектуальная реализация"
+                        ],
+                        "correct": 2,
+                        "comment": "Истероидный радикал живет ради внимания. Он нуждается в признании своей значимости и уникальности."
+                    },
+                    {
+                        "id": "B3",
+                        "radical": "Паранойяльный",
+                        "text": "Какая стратегия поведения ведущая у паранойяльного радикала?",
+                        "options": [
+                            "Избегание конфликтов",
+                            "Поиск компромиссов",
+                            "Борьба с угрозами и врагами",
+                            "Творческая самореализация"
+                        ],
+                        "correct": 2,
+                        "comment": "Паранойяльный радикал видит мир как поле битвы, где нужно постоянно выявлять и нейтрализовать угрозы."
+                    },
+                    {
+                        "id": "B4",
+                        "radical": "Эпилептоидный",
+                        "text": "Какая эмоция является основной для эпилептоидного радикала?",
+                        "options": [
+                            "Радость",
+                            "Гнев и раздражение",
+                            "Печаль",
+                            "Страх"
+                        ],
+                        "correct": 1,
+                        "comment": "Эпилептоидный радикал легко впадает в гнев, агрессивен в конфликтах и часто раздражен."
+                    },
+                    {
+                        "id": "B5",
+                        "radical": "Гипертимный",
+                        "text": "Какое состояние доминирует у гипертимного радикала большую часть времени?",
+                        "options": [
+                            "Тревога",
+                            "Приподнятое настроение и оптимизм",
+                            "Апатия и безразличие",
+                            "Раздражение и агрессия"
+                        ],
+                        "correct": 1,
+                        "comment": "Гипертимный радикал отличается постоянным оптимизмом, энергичностью и жизнерадостностью."
+                    },
+                    {
+                        "id": "B6",
+                        "radical": "Шизоидный",
+                        "text": "Что является главным интересом шизоидного радикала?",
+                        "options": [
+                            "Социальные связи",
+                            "Власть и статус",
+                            "Идеи, теории, интеллектуальные изыскания",
+                            "Практическая деятельность"
+                        ],
+                        "correct": 2,
+                        "comment": "Шизоидный радикал живет в мире идей и концепций, его главный интерес — интеллектуальное познание."
+                    },
+                    {
+                        "id": "B7",
+                        "radical": "Эмотивный",
+                        "text": "Какая эмоция является ведущей для эмотивного радикала?",
+                        "options": [
+                            "Гнев",
+                            "Радость",
+                            "Глубокая эмпатия и сострадание",
+                            "Страх"
+                        ],
+                        "correct": 2,
+                        "comment": "Эмотивный радикал отличается повышенной чувствительностью, эмпатией и способностью глубоко сопереживать."
+                    }
+                ]
+            },
+            "C": {
+                "name": "Смешанные вопросы",
+                "questions": [
+                    {
+                        "id": "C1",
+                        "radical": "Тревожный",
+                        "text": "Как тревожный радикал относится к риску?",
+                        "options": [
+                            "Любит риск, это его драйв",
+                            "Избегает даже минимального риска",
+                            "Рискует только ради большой выгоды",
+                            "Не обращает внимания на риск"
+                        ],
+                        "correct": 1,
+                        "comment": "Тревожный радикал не склонен к риску, старается избегать любых авантюр и неопределенных ситуаций."
+                    },
+                    {
+                        "id": "C2",
+                        "radical": "Истероидный",
+                        "text": "Как истероидный радикал реагирует на критику?",
+                        "options": [
+                            "Принимает конструктивно",
+                            "Воспринимает как личное оскорбление и может устроить истерику",
+                            "Игнорирует",
+                            "Использует для саморазвития"
+                        ],
+                        "correct": 1,
+                        "comment": "Истероидный радикал крайне болезненно реагирует на критику, это ранит его самолюбие и потребность в восхищении."
+                    },
+                    {
+                        "id": "C3",
+                        "radical": "Паранойяльный",
+                        "text": "Как паранойяльный радикал относится к своим врагам?",
+                        "options": [
+                            "Старается найти общий язык",
+                            "Игнорирует их существование",
+                            "Ведет постоянную борьбу, видит врагов везде",
+                            "Не замечает противников"
+                        ],
+                        "correct": 2,
+                        "comment": "Паранойяльный радикал постоянно ищет и находит врагов, даже где их нет, и ведет с ними непрерывную борьбу."
+                    },
+                    {
+                        "id": "C4",
+                        "radical": "Эпилептоидный",
+                        "text": "Как эпилептоидный радикал относится к дисциплине и порядку?",
+                        "options": [
+                            "Халатно",
+                            "Требует жесткого порядка и сам его соблюдает",
+                            "Не обращает внимания",
+                            "Создает видимость порядка"
+                        ],
+                        "correct": 1,
+                        "comment": "Эпилептоидный радикал педантичен, требует строгой дисциплины и сам неукоснительно соблюдает установленные правила."
+                    },
+                    {
+                        "id": "C5",
+                        "radical": "Гипертимный",
+                        "text": "Как гипертимный радикал относится к новому?",
+                        "options": [
+                            "С опаской",
+                            "С энтузиазмом, радостно воспринимает новое",
+                            "Равнодушно",
+                            "Только если это выгодно"
+                        ],
+                        "correct": 1,
+                        "comment": "Гипертимный радикал с воодушевлением принимает все новое, его энергии хватает на самые смелые начинания."
+                    },
+                    {
+                        "id": "C6",
+                        "radical": "Шизоидный",
+                        "text": "Как шизоидный радикал относится к теоретическим построениям?",
+                        "options": [
+                            "Скептически",
+                            "Увлекается, строит сложные интеллектуальные концепции",
+                            "Безразлично",
+                            "Использует только для практики"
+                        ],
+                        "correct": 1,
+                        "comment": "Шизоидный радикал обожает теорию, построение абстрактных моделей — его стихия."
+                    },
+                    {
+                        "id": "C7",
+                        "radical": "Эмотивный",
+                        "text": "Как эмотивный радикал относится к другим людям?",
+                        "options": [
+                            "Потребительски",
+                            "С глубоким сочувствием и сопереживанием",
+                            "Инструментально (как к средствам)",
+                            "Нейтрально"
+                        ],
+                        "correct": 1,
+                        "comment": "Эмотивный радикал отличается высокой эмпатией, способностью к глубокому сочувствию и пониманию других."
+                    }
+                ]
+            }
+        }
+    };
+
+    // ===================== ОСНОВНАЯ ЛОГИКА =====================
+    (function(){
+        let allQuestions = [];
+        let currentIndex = 0;
+        let userAnswers = [];
+        let userName = '';
+        let timerInterval = null;
+        let timeSeconds = 1500;
+        let isFinished = false;
+
+        const radicalsList = ['Тревожный','Истероидный','Паранойяльный','Эпилептоидный','Гипертимный','Шизоидный','Эмотивный'];
+
+        const startScreen = document.getElementById('startScreen');
+        const testArea = document.getElementById('testArea');
+        const resultsArea = document.getElementById('resultsArea');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressLabel = document.getElementById('progressLabel');
+        const blockLabel = document.getElementById('blockLabel');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const nextBtn = document.getElementById('nextQuestionBtn');
+        const resetBtn = document.getElementById('resetTestBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+        const exportTxtBtn = document.getElementById('exportTxtBtn');
+        const startBtn = document.getElementById('startTestBtn');
+        const userNameInput = document.getElementById('userNameInput');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const profileGrid = document.getElementById('profileGrid');
+        const errorsBlock = document.getElementById('errorsBlock');
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function buildQuestionList() {
+            const list = [];
+            const blocks = QUESTION_DATA.blocks;
+            for (const key of ['A','B','C']) {
+                const block = blocks[key];
+                if (!block) continue;
+                for (const q of block.questions) {
+                    list.push({
+                        ...q,
+                        blockName: block.name,
+                        blockKey: key,
+                        options: [...q.options],
+                    });
+                }
+            }
+            return shuffle(list);
+        }
+
+        function initTest() {
+            allQuestions = buildQuestionList();
+            currentIndex = 0;
+            userAnswers = new Array(allQuestions.length).fill(-1);
+            isFinished = false;
+            clearInterval(timerInterval);
+            timeSeconds = 1500;
+            updateTimerDisplay();
+            renderQuestion();
+            updateProgress();
+            testArea.classList.remove('hidden');
+            resultsArea.classList.add('hidden');
+            startScreen.classList.add('hidden');
+            nextBtn.disabled = false;
+            timerInterval = setInterval(() => {
+                timeSeconds--;
+                updateTimerDisplay();
+                if (timeSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    finishTest('Время вышло!');
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeSeconds / 60);
+            const s = timeSeconds % 60;
+            timerDisplay.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            if (timeSeconds < 300) timerDisplay.classList.add('warning');
+            else timerDisplay.classList.remove('warning');
+        }
+
+        function renderQuestion() {
+            if (currentIndex >= allQuestions.length) {
+                finishTest();
+                return;
+            }
+            const q = allQuestions[currentIndex];
+            const idx = currentIndex;
+            const selected = userAnswers[idx];
+
+            const blockKey = q.blockKey;
+            const blockName = q.blockName;
+            blockLabel.textContent = `Блок ${blockKey} (${blockName})`;
+
+            let html = `<div class="question-card" data-qidx="${idx}">
+                <div class="q-header"><span>${idx+1}/${allQuestions.length}</span></div>
+                <div class="q-text">${q.text}</div>
+                <div class="options-grid">`;
+            q.options.forEach((opt, oi) => {
+                const checked = (selected === oi) ? 'checked' : '';
+                html += `<div class="option-item ${selected === oi ? 'selected' : ''}" data-optidx="${oi}">
+                    <input type="radio" name="q${idx}" value="${oi}" id="q${idx}_opt${oi}" ${checked}>
+                    <label for="q${idx}_opt${oi}">${opt}</label>
+                </div>`;
+            });
+            html += `</div></div>`;
+            questionsContainer.innerHTML = html;
+
+            document.querySelectorAll('.option-item').forEach(el => {
+                const radio = el.querySelector('input[type="radio"]');
+                el.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'INPUT') {
+                        const inp = this.querySelector('input[type="radio"]');
+                        if (inp) inp.checked = true;
+                    }
+                    const inp = this.querySelector('input[type="radio"]');
+                    if (inp) inp.dispatchEvent(new Event('change'));
+                });
+                radio.addEventListener('change', function() {
+                    const parent = this.closest('.question-card');
+                    const qidx = parseInt(parent.dataset.qidx);
+                    const val = parseInt(this.value);
+                    parent.querySelectorAll('.option-item').forEach(oi => oi.classList.remove('selected'));
+                    const selectedOpt = parent.querySelector(`.option-item[data-optidx="${val}"]`);
+                    if (selectedOpt) selectedOpt.classList.add('selected');
+                    userAnswers[qidx] = val;
+                    updateProgress();
+                });
+            });
+
+            if (selected !== -1) {
+                const parent = document.querySelector(`.question-card[data-qidx="${idx}"]`);
+                if (parent) {
+                    parent.querySelectorAll('.option-item').forEach(oi => oi.classList.remove('selected'));
+                    const sel = parent.querySelector(`.option-item[data-optidx="${selected}"]`);
+                    if (sel) sel.classList.add('selected');
+                }
+            }
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const answered = userAnswers.filter(a => a !== -1).length;
+            progressFill.style.width = `${(answered/allQuestions.length)*100}%`;
+            progressLabel.textContent = `${answered} из ${allQuestions.length}`;
+            if (currentIndex >= allQuestions.length - 1) {
+                nextBtn.textContent = '📊 Завершить';
+            } else {
+                nextBtn.textContent = 'Далее →';
+            }
+        }
+
+        function finishTest(message) {
+            if (isFinished) return;
+            isFinished = true;
+            clearInterval(timerInterval);
+            testArea.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+            showResults();
+        }
+
+        function showResults() {
+            const total = allQuestions.length;
+            let correctCount = 0;
+            const radicalStats = {};
+            radicalsList.forEach(r => radicalStats[r] = { correct: 0, total: 0 });
+            const errors = [];
+
+            allQuestions.forEach((q, idx) => {
+                const selected = userAnswers[idx];
+                const isCorrect = (selected === q.correct);
+                if (isCorrect) correctCount++;
+                radicalStats[q.radical].total++;
+                if (isCorrect) radicalStats[q.radical].correct++;
+                else {
+                    errors.push({
+                        id: q.id,
+                        radical: q.radical,
+                        text: q.text,
+                        selected: selected !== -1 ? q.options[selected] : 'Не выбран',
+                        correct: q.options[q.correct],
+                        comment: q.comment
+                    });
+                }
+            });
+
+            userName = userNameInput.value.trim() || 'Аноним';
+            userNameDisplay.textContent = `👤 ${userName} · ${new Date().toLocaleString()}`;
+
+            let profileHtml = '';
+            radicalsList.forEach(r => {
+                const stat = radicalStats[r];
+                const score = stat.correct;
+                const max = stat.total;
+                let statusText, badgeClass;
+                if (score === max) { statusText = 'Отлично'; badgeClass = 'green'; }
+                else if (score >= max - 1 && max > 1) { statusText = 'Хорошо'; badgeClass = 'yellow'; }
+                else { statusText = 'Слабо'; badgeClass = 'red'; }
+                profileHtml += `<div class="radical-card">
+                    <div class="radical-name"><span>${r}</span><span class="radical-score">${score}/${max}</span></div>
+                    <div class="radical-status"><span class="badge ${badgeClass}">${statusText}</span></div>
+                </div>`;
+            });
+            profileGrid.innerHTML = profileHtml;
+
+            if (errors.length === 0) {
+                errorsBlock.innerHTML = `<div style="padding:12px; background:#e6f5e6; border-radius:16px; color:#166b3a;">✅ Все вопросы отвечены верно! Отличный результат.</div>`;
+            } else {
+                let errHtml = `<h4 style="margin:0 0 12px;">❌ Ошибки (${errors.length})</h4>`;
+                errors.forEach(e => {
+                    errHtml += `<div class="error-item">
+                        <div class="error-q">${e.id} · ${e.radical} — ${e.text}</div>
+                        <div class="error-detail">
+                            <strong>Ваш ответ:</strong> ${e.selected}<br>
+                            <strong>Правильный:</strong> ${e.correct}<br>
+                            <strong>Пояснение:</strong> ${e.comment}
+                        </div>
+                    </div>`;
+                });
+                errorsBlock.innerHTML = errHtml;
+            }
+
+            const percent = Math.round((correctCount/total)*100);
+            const grade = percent >= 90 ? 10 : percent >= 75 ? 8 : percent >= 55 ? 6 : percent >= 35 ? 4 : 2;
+
+            const summary = document.createElement('div');
+            summary.className = 'summary-block';
+            summary.innerHTML = `<span><strong>Правильных:</strong> ${correctCount}/${total} (${percent}%)</span>
+                                 <span><strong>Оценка (10-балльная):</strong> ${grade} / 10</span>`;
+            const gridParent = profileGrid.parentNode;
+            const existingSummary = gridParent.querySelector('.summary-block');
+            if (existingSummary) existingSummary.remove();
+            gridParent.insertBefore(summary, profileGrid);
+
+            window._pdfData = { userName, correctCount, total, percent, grade, radicalStats, errors };
+            window._txtData = { userName, correctCount, total, percent, grade, radicalStats, errors };
+        }
+
+        function goNext() {
+            if (isFinished) return;
+            if (currentIndex < allQuestions.length - 1) {
+                currentIndex++;
+                renderQuestion();
+            } else {
+                finishTest();
+            }
+        }
+
+        function resetTest() {
+            clearInterval(timerInterval);
+            startScreen.classList.remove('hidden');
+            testArea.classList.add('hidden');
+            resultsArea.classList.add('hidden');
+            timeSeconds = 1500;
+            updateTimerDisplay();
+            timerDisplay.classList.remove('warning');
+            isFinished = false;
+            currentIndex = 0;
+            allQuestions = [];
+            userAnswers = [];
+            questionsContainer.innerHTML = '';
+            progressFill.style.width = '0%';
+            progressLabel.textContent = '0 из 0';
+        }
+
+        // ---------- PDF ЭКСПОРТ (UTF-8) ----------
+        function exportPDF() {
+            const d = window._pdfData;
+            if (!d) return;
+            const { userName, correctCount, total, percent, grade, radicalStats, errors } = d;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 40;
+            let y = 50;
+
+            doc.setFontSize(18);
+            doc.text('Результаты теста «Семь радикалов»', pageWidth/2, y, { align: 'center' });
+            y += 28;
+            doc.setFontSize(12);
+            doc.text(`Имя: ${userName}`, margin, y);
+            y += 20;
+            doc.text(`Дата: ${new Date().toLocaleString()}`, margin, y);
+            y += 28;
+            doc.setFontSize(14);
+            doc.text(`Правильных: ${correctCount}/${total} (${percent}%)`, margin, y);
+            y += 22;
+            doc.text(`Оценка (10-балльная): ${grade} / 10`, margin, y);
+            y += 30;
+
+            doc.setFontSize(12);
+            doc.text('Профиль по радикалам:', margin, y);
+            y += 18;
+            radicalsList.forEach(r => {
+                const stat = radicalStats[r];
+                if (!stat) return;
+                const score = stat.correct;
+                const max = stat.total;
+                let status = score === max ? 'Отлично' : (score >= max-1 ? 'Хорошо' : 'Слабо');
+                doc.text(`${r}: ${score}/${max} (${status})`, margin+10, y);
+                y += 18;
+                if (y > 700) { doc.addPage(); y=50; }
+            });
+
+            y += 16;
+            doc.text('Ошибки с пояснениями:', margin, y);
+            y += 18;
+            if (errors.length === 0) {
+                doc.text('✅ Без ошибок', margin+10, y);
+            } else {
+                errors.forEach((e, i) => {
+                    const lines = doc.splitTextToSize(`${i+1}. ${e.radical} — ${e.text}`, pageWidth - margin*2 - 20);
+                    doc.text(lines, margin+10, y);
+                    y += lines.length * 16;
+                    const detail = `→ Ваш: ${e.selected} | Правильный: ${e.correct}`;
+                    doc.text(detail, margin+20, y);
+                    y += 16;
+                    const comm = `Пояснение: ${e.comment}`;
+                    const commLines = doc.splitTextToSize(comm, pageWidth - margin*2 - 30);
+                    doc.text(commLines, margin+20, y);
+                    y += commLines.length * 16 + 10;
+                    if (y > 700) { doc.addPage(); y=50; }
+                });
+            }
+
+            doc.save(`radicals_test_${userName}.pdf`);
+        }
+
+        // ---------- TXT ЭКСПОРТ (Windows-1251) ----------
+        function exportTXT() {
+            const d = window._txtData;
+            if (!d) return;
+            const { userName, correctCount, total, percent, grade, radicalStats, errors } = d;
+
+            let lines = [];
+            lines.push('Результаты теста «Семь радикалов»');
+            lines.push('='.repeat(50));
+            lines.push(`Имя: ${userName}`);
+            lines.push(`Дата: ${new Date().toLocaleString()}`);
+            lines.push('');
+            lines.push(`Правильных: ${correctCount}/${total} (${percent}%)`);
+            lines.push(`Оценка (10-балльная): ${grade} / 10`);
+            lines.push('');
+            lines.push('Профиль по радикалам:');
+            radicalsList.forEach(r => {
+                const stat = radicalStats[r];
+                if (!stat) return;
+                const score = stat.correct;
+                const max = stat.total;
+                let status = score === max ? 'Отлично' : (score >= max-1 ? 'Хорошо' : 'Слабо');
+                lines.push(`  ${r}: ${score}/${max} (${status})`);
+            });
+            lines.push('');
+            lines.push('Ошибки с пояснениями:');
+            if (errors.length === 0) {
+                lines.push('  ✅ Без ошибок');
+            } else {
+                errors.forEach((e, i) => {
+                    lines.push(`  ${i+1}. ${e.radical} — ${e.text}`);
+                    lines.push(`     → Ваш: ${e.selected}`);
+                    lines.push(`     → Правильный: ${e.correct}`);
+                    lines.push(`     → Пояснение: ${e.comment}`);
+                    lines.push('');
+                });
+            }
+
+            const content = lines.join('\n');
+            // Кодировка Windows-1251
+            const blob = new Blob([content], { type: 'text/plain;charset=windows-1251' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `radicals_test_${userName}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        // ---------- СОБЫТИЯ ----------
+        startBtn.addEventListener('click', function() {
+            if (!userNameInput.value.trim()) {
+                userNameInput.style.borderColor = '#b12b2b';
+                userNameInput.placeholder = 'Введите имя!';
+                setTimeout(() => { userNameInput.style.borderColor = ''; }, 1500);
+                return;
+            }
+            initTest();
+        });
+
+        nextBtn.addEventListener('click', goNext);
+        resetBtn.addEventListener('click', function() {
+            if (confirm('Сбросить тест и вернуться на старт?')) resetTest();
+        });
+        retryBtn.addEventListener('click', resetTest);
+        exportPdfBtn.addEventListener('click', exportPDF);
+        exportTxtBtn.addEventListener('click', exportTXT);
+
+        userNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') startBtn.click(); });
+
+        resetTest();
+    })();
+</script>
+</body>
+</html>
